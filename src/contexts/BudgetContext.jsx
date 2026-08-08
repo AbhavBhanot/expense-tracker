@@ -1,0 +1,361 @@
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { DEFAULT_CATEGORIES, DEFAULT_MONTHLY_INCOME } from '../utils/constants';
+
+const initialState = {
+  currentMonth: '2026-08',
+  months: {
+    '2026-08': {
+      budget: {
+        totalIncome: DEFAULT_MONTHLY_INCOME,
+        categories: DEFAULT_CATEGORIES
+      },
+      expenses: []
+    }
+  },
+  settings: {
+    thresholds: { onTrack: 50, monitor: 75, nearLimit: 90, critical: 100 },
+    paymentMethods: ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'Wallet'],
+    currency: '₹',
+    theme: 'dark'
+  }
+};
+
+const BudgetContext = createContext(null);
+
+function budgetReducer(state, action) {
+  const { currentMonth } = state;
+  const currentMonthData = state.months[currentMonth] || { budget: { totalIncome: 0, categories: [] }, expenses: [] };
+  
+  switch (action.type) {
+    case 'ADD_EXPENSE': {
+      const newExpense = {
+        id: `exp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...action.payload
+      };
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            expenses: [...currentMonthData.expenses, newExpense]
+          }
+        }
+      };
+    }
+    
+    case 'EDIT_EXPENSE': {
+      const updatedExpenses = currentMonthData.expenses.map(exp => 
+        exp.id === action.payload.id ? { ...exp, ...action.payload } : exp
+      );
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            expenses: updatedExpenses
+          }
+        }
+      };
+    }
+    
+    case 'DELETE_EXPENSE': {
+      const updatedExpenses = currentMonthData.expenses.filter(exp => exp.id !== action.payload.id);
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            expenses: updatedExpenses
+          }
+        }
+      };
+    }
+    
+    case 'ADD_CATEGORY': {
+      const newCategory = {
+        id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...action.payload
+      };
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            budget: {
+              ...currentMonthData.budget,
+              categories: [...currentMonthData.budget.categories, newCategory]
+            }
+          }
+        }
+      };
+    }
+
+    case 'UPDATE_CATEGORY': {
+      const updatedCategories = currentMonthData.budget.categories.map(cat => 
+        cat.id === action.payload.id ? { ...cat, ...action.payload } : cat
+      );
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            budget: {
+              ...currentMonthData.budget,
+              categories: updatedCategories
+            }
+          }
+        }
+      };
+    }
+
+    case 'DELETE_CATEGORY': {
+      const updatedCategories = currentMonthData.budget.categories.filter(cat => cat.id !== action.payload.id);
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            budget: {
+              ...currentMonthData.budget,
+              categories: updatedCategories
+            }
+          }
+        }
+      };
+    }
+    
+    case 'UPDATE_TOTAL_INCOME': {
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            budget: {
+              ...currentMonthData.budget,
+              totalIncome: action.payload.totalIncome
+            }
+          }
+        }
+      };
+    }
+    
+    case 'UPDATE_SETTINGS': {
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          ...action.payload
+        }
+      };
+    }
+
+    case 'TOGGLE_THEME': {
+      const nextTheme = state.settings.theme === 'dark' ? 'light' : 'dark';
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          theme: nextTheme
+        }
+      };
+    }
+    
+    case 'SWITCH_MONTH': {
+      const targetMonth = action.payload.month;
+      return {
+        ...state,
+        currentMonth: targetMonth,
+        months: {
+          ...state.months,
+          [targetMonth]: state.months[targetMonth] || { budget: { totalIncome: DEFAULT_MONTHLY_INCOME, categories: DEFAULT_CATEGORIES }, expenses: [] }
+        }
+      };
+    }
+    
+    case 'CREATE_MONTH': {
+      const { month, copyFrom } = action.payload;
+      const sourceBudget = copyFrom && state.months[copyFrom] 
+        ? JSON.parse(JSON.stringify(state.months[copyFrom].budget)) 
+        : { totalIncome: DEFAULT_MONTHLY_INCOME, categories: DEFAULT_CATEGORIES };
+        
+      return {
+        ...state,
+        currentMonth: month,
+        months: {
+          ...state.months,
+          [month]: {
+            budget: sourceBudget,
+            expenses: []
+          }
+        }
+      };
+    }
+    
+    case 'RESET_TO_DEFAULTS': {
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            budget: {
+              totalIncome: DEFAULT_MONTHLY_INCOME,
+              categories: DEFAULT_CATEGORIES
+            }
+          }
+        }
+      };
+    }
+
+    case 'IMPORT_DATA': {
+      return {
+        ...action.payload
+      };
+    }
+
+    case 'LOAD_SAMPLE_DATA': {
+      const sampleExpenses = action.payload?.expenses || [];
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            expenses: [...currentMonthData.expenses, ...sampleExpenses]
+          }
+        }
+      };
+    }
+    
+    case 'CLEAR_EXPENSES': {
+      return {
+        ...state,
+        months: {
+          ...state.months,
+          [currentMonth]: {
+            ...currentMonthData,
+            expenses: []
+          }
+        }
+      };
+    }
+    
+    default:
+      return state;
+  }
+}
+
+export function BudgetProvider({ children }) {
+  const [storedData, setStoredData] = useLocalStorage('budget-tracker-data', initialState);
+  
+  const [state, dispatch] = useReducer(budgetReducer, storedData);
+
+  useEffect(() => {
+    setStoredData(state);
+  }, [state, setStoredData]);
+
+  const toggleTheme = useCallback(() => {
+    dispatch({ type: 'TOGGLE_THEME' });
+  }, []);
+
+  useEffect(() => {
+    const activeTheme = state.settings?.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', activeTheme);
+  }, [state.settings?.theme]);
+
+  const addExpense = useCallback((expense) => {
+    dispatch({ type: 'ADD_EXPENSE', payload: expense });
+  }, []);
+
+  const editExpense = useCallback((id, updates) => {
+    dispatch({ type: 'EDIT_EXPENSE', payload: { id, ...updates } });
+  }, []);
+
+  const deleteExpense = useCallback((id) => {
+    dispatch({ type: 'DELETE_EXPENSE', payload: { id } });
+  }, []);
+
+  const addCategory = useCallback((category) => {
+    dispatch({ type: 'ADD_CATEGORY', payload: category });
+  }, []);
+
+  const updateCategory = useCallback((id, updates) => {
+    dispatch({ type: 'UPDATE_CATEGORY', payload: { id, ...updates } });
+  }, []);
+
+  const deleteCategory = useCallback((id) => {
+    dispatch({ type: 'DELETE_CATEGORY', payload: { id } });
+  }, []);
+
+  const switchMonth = useCallback((month) => {
+    dispatch({ type: 'SWITCH_MONTH', payload: { month } });
+  }, []);
+
+  const createMonth = useCallback((month, copyFrom) => {
+    dispatch({ type: 'CREATE_MONTH', payload: { month, copyFrom } });
+  }, []);
+
+  const resetToDefaults = useCallback(() => {
+    dispatch({ type: 'RESET_TO_DEFAULTS' });
+  }, []);
+
+  const getCurrentMonthData = useCallback(() => {
+    return state.months[state.currentMonth] || { budget: { totalIncome: 0, categories: [] }, expenses: [] };
+  }, [state.months, state.currentMonth]);
+
+  const getCategories = useCallback(() => {
+    const data = getCurrentMonthData();
+    return data.budget.categories || [];
+  }, [getCurrentMonthData]);
+
+  const getExpenses = useCallback(() => {
+    const data = getCurrentMonthData();
+    return data.expenses || [];
+  }, [getCurrentMonthData]);
+
+  const value = useMemo(() => ({
+    state,
+    dispatch,
+    addExpense,
+    editExpense,
+    deleteExpense,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    switchMonth,
+    createMonth,
+    resetToDefaults,
+    toggleTheme,
+    getCurrentMonthData,
+    getCategories,
+    getExpenses
+  }), [
+    state, 
+    addExpense, editExpense, deleteExpense, 
+    addCategory, updateCategory, deleteCategory, 
+    switchMonth, createMonth, resetToDefaults, toggleTheme,
+    getCurrentMonthData, getCategories, getExpenses
+  ]);
+
+  return (
+    <BudgetContext.Provider value={value}>
+      {children}
+    </BudgetContext.Provider>
+  );
+}
+
+export function useBudget() {
+  const context = useContext(BudgetContext);
+  if (!context) {
+    throw new Error('useBudget must be used within a BudgetProvider');
+  }
+  return context;
+}
