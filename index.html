@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="description" content="BudgetTrack — Premium Personal Expense & Budget Tracker. Manage budgets, track spending, and achieve savings goals." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0c0c0f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f8f6" media="(prefers-color-scheme: light)" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BudgetTrack" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- FOUC prevention: restore user theme preference before render -->
+    <script>
+      {
+        const t = localStorage.getItem('budget-tracker-data');
+        if (t) {
+          try {
+            const d = JSON.parse(t);
+            const theme = d?.settings?.theme;
+            if (theme) document.documentElement.setAttribute('data-theme', theme);
+          } catch(e) {}
+        }
+      }
+    </script>
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <title>BudgetTrack — Personal Expense & Budget Tracker</title>
+    <script type="module" crossorigin src="/assets/index-DXddCwiU.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-ByqSI90M.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
