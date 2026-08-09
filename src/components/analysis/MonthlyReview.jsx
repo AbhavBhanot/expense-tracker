@@ -41,9 +41,9 @@ export default function MonthlyReview() {
   
   return (
     <div className="review-page animate-fadeIn">
-      <div className="flex-between mb-3 hidden-print">
+      <div className="review-header-row hidden-print">
         <Header title="Monthly Review" subtitle={`Automated report & financial summary for ${getMonthName(currentMonth)}`} />
-        <button className="btn btn-secondary" onClick={handlePrint}>
+        <button className="btn btn-secondary review-print-btn" onClick={handlePrint}>
           <Printer size={16} /> Print / Export PDF
         </button>
       </div>
@@ -55,24 +55,44 @@ export default function MonthlyReview() {
       </div>
 
       {/* Top Level Summary Grid */}
-      <div className="review-metrics-grid">
-        <div className="card review-metric">
-          <span className="review-metric-label">Total Income</span>
-          <span className="review-metric-value">{formatCurrency(totalIncome)}</span>
+      <div className="kpi-grid">
+        <div className="card kpi-card kpi-default">
+          <div className="kpi-content">
+            <span className="kpi-label">Total Income</span>
+            <span className="kpi-value">{formatCurrency(totalIncome)}</span>
+          </div>
+          <div className="kpi-icon kpi-icon-default">
+            <TrendingUp size={22} />
+          </div>
         </div>
-        <div className="card review-metric">
-          <span className="review-metric-label">Total Spent</span>
-          <span className="review-metric-value text-danger">{formatCurrency(overallMetrics.totalSpent)}</span>
+        <div className="card kpi-card kpi-danger">
+          <div className="kpi-content">
+            <span className="kpi-label">Total Spent</span>
+            <span className="kpi-value text-danger">{formatCurrency(overallMetrics.totalSpent)}</span>
+          </div>
+          <div className="kpi-icon kpi-icon-danger">
+            <TrendingDown size={22} />
+          </div>
         </div>
-        <div className="card review-metric">
-          <span className="review-metric-label">Budget Remaining</span>
-          <span className={`review-metric-value ${overallMetrics.totalRemaining >= 0 ? 'text-success' : 'text-danger'}`}>
-            {formatCurrency(overallMetrics.totalRemaining)}
-          </span>
+        <div className="card kpi-card kpi-success">
+          <div className="kpi-content">
+            <span className="kpi-label">Budget Remaining</span>
+            <span className={`kpi-value ${overallMetrics.totalRemaining >= 0 ? 'text-success' : 'text-danger'}`}>
+              {formatCurrency(overallMetrics.totalRemaining)}
+            </span>
+          </div>
+          <div className="kpi-icon kpi-icon-success">
+            <Target size={22} />
+          </div>
         </div>
-        <div className="card review-metric">
-          <span className="review-metric-label">Savings Rate</span>
-          <span className="review-metric-value text-info">{formatPercent(savingsRate)}</span>
+        <div className="card kpi-card kpi-info">
+          <div className="kpi-content">
+            <span className="kpi-label">Savings Rate</span>
+            <span className="kpi-value text-info">{formatPercent(savingsRate)}</span>
+          </div>
+          <div className="kpi-icon kpi-icon-info">
+            <ShieldCheck size={22} />
+          </div>
         </div>
       </div>
 
@@ -141,6 +161,7 @@ export default function MonthlyReview() {
             value={totalSaved} 
             max={savingsGoal > 0 ? savingsGoal : 1} 
             label="Savings Goal Progress"
+            showPercent={true}
           />
 
           {savingsGoal > totalSaved && (
@@ -220,7 +241,7 @@ export default function MonthlyReview() {
           </div>
         </div>
 
-        <div className="flex-between gap-3 p-3 card" style={{ background: 'var(--bg-tertiary)' }}>
+        <div className="flex-between gap-3 p-4 card" style={{ background: 'var(--bg-tertiary)', flexWrap: 'wrap' }}>
           <div>
             <span className="text-tertiary text-xs block">Largest Positive Variance</span>
             <span className="text-success font-medium text-sm">

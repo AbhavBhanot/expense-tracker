@@ -130,7 +130,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div style={{ marginTop: 'var(--space-lg)', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
           <button className="btn btn-primary" onClick={saveThresholds}>
             <Save size={16} />
             {saveSuccess ? 'Saved!' : 'Save Thresholds'}
@@ -155,7 +155,7 @@ export default function Settings() {
           ))}
         </div>
 
-        <form onSubmit={addPaymentMethod} style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+        <form onSubmit={addPaymentMethod} style={{ display: 'flex', gap: 'var(--space-3)' }}>
           <input 
             type="text" className="form-input" 
             placeholder="New payment method..."
@@ -203,6 +203,7 @@ export default function Settings() {
         </h3>
         <div className="about-section">
           <p><strong>BudgetTrack</strong> — Smart Expense Tracker v1.0</p>
+          <p style={{ fontSize: 'var(--text-sm)', fontStyle: 'italic', marginTop: 'var(--space-1)' }}>Built for My Love {'<3'}</p>
           <p>All data is stored locally in your browser's localStorage. Your financial information never leaves your device.</p>
           <p>Tip: Export backups regularly if you rely on this tracker for important financial decisions.</p>
         </div>
@@ -213,17 +214,15 @@ export default function Settings() {
         isOpen={showClearModal} 
         onClose={() => setShowClearModal(false)}
         title="Clear Expenses"
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setShowClearModal(false)}>Cancel</button>
-            <button className="btn btn-danger" onClick={handleClearExpenses}>Yes, Clear All</button>
-          </>
-        }
       >
-        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.6 }}>
+        <p className="text-secondary text-sm" style={{ lineHeight: 1.6 }}>
           This will permanently delete <strong>all expenses</strong> for {currentMonth}. 
           Your budget categories and settings will remain intact. This cannot be undone.
         </p>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={() => setShowClearModal(false)}>Cancel</button>
+          <button className="btn btn-danger" onClick={handleClearExpenses}>Yes, Clear All</button>
+        </div>
       </Modal>
 
       {/* Import Modal */}
@@ -232,8 +231,8 @@ export default function Settings() {
         onClose={() => { setShowImportModal(false); setImportStatus(null); }}
         title="Import Data"
       >
-        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-md)' }}>
-          Select a JSON backup file. <strong style={{ color: 'var(--color-warning)' }}>Warning:</strong> This will overwrite all current data.
+        <p className="text-secondary text-sm mb-3">
+          Select a JSON backup file. <strong className="text-warning">Warning:</strong> This will overwrite all current data.
         </p>
         <input 
           type="file" 
@@ -243,7 +242,7 @@ export default function Settings() {
           ref={fileInputRef}
         />
         {importStatus && (
-          <div className={`alert-item ${importStatus.includes('Error') ? 'alert-danger' : 'alert-success'}`} style={{ marginTop: 'var(--space-md)' }}>
+          <div className={`alert-item mt-3 ${importStatus.includes('Error') ? 'alert-danger' : 'alert-success'}`}>
             {importStatus}
           </div>
         )}

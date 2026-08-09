@@ -7,6 +7,8 @@ import Header from '../layout/Header';
 import { useBudget } from '../../contexts/BudgetContext';
 import { calculateCategoryPace } from '../../utils/calculations';
 import { ChevronDown, ChevronRight, AlertCircle, CheckCircle, TrendingUp, Info } from 'lucide-react';
+import SpendingPieChart from '../dashboard/SpendingPieChart';
+import CategoryProgressList from '../dashboard/CategoryProgressList';
 
 export default function CategorySummary() {
   const { categoryTotals } = useBudgetCalculations();
@@ -70,7 +72,7 @@ export default function CategorySummary() {
     <div className="category-summary-page animate-fadeIn">
       <Header title="Category Summary" subtitle="Detailed category breakdown, variances, and pace metrics" />
 
-      <div className="kpi-grid mb-4">
+      <div className="kpi-grid mb-3">
         <div className="card kpi-card kpi-success">
           <div className="kpi-content">
             <span className="kpi-label">On Track</span>
@@ -103,6 +105,12 @@ export default function CategorySummary() {
             <TrendingUp size={22} />
           </div>
         </div>
+      </div>
+
+      {/* Spending by Category chart + Category Status progress list */}
+      <div className="dashboard-bottom-grid">
+        <SpendingPieChart categoryTotals={categoryTotals} />
+        <CategoryProgressList categoryTotals={categoryTotals} />
       </div>
 
       <div className="card">
@@ -144,9 +152,11 @@ export default function CategorySummary() {
                       className={`category-row-expandable ${isWarning ? 'bg-danger-light' : ''}`}
                       onClick={() => setExpandedCategory(isExpanded ? null : category.name)}
                     >
-                      <td className="font-medium" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        {category.name}
+                      <td className="font-medium">
+                        <div className="td-flex-inner">
+                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          <span>{category.name}</span>
+                        </div>
                       </td>
                       <td className="text-secondary">{formatCurrency(category.planned)}</td>
                       <td className="font-semibold">{formatCurrency(category.actualSpent)}</td>

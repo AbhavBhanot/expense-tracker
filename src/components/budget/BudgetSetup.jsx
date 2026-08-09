@@ -164,24 +164,16 @@ export default function BudgetSetup() {
       </div>
 
       {/* Income & Allocation Section */}
-      <div className="card p-4">
+      <div className="card p-6">
         <h3 className="card-title mb-3">Monthly Income & Allocation</h3>
         
-        <div
-          className="grid-2 align-items-center"
-          style={{
-            columnGap: '24px',
-            rowGap: '20px',
-            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.15fr)'
-          }}
-        >
+        <div className="income-allocation-grid">
           <form
             onSubmit={handleIncomeUpdate}
-            className="flex align-items-end"
-            style={{ gap: '12px', width: '100%', minWidth: 0 }}
+            className="flex items-end gap-3 flex-1"
           >
             <div className="form-group mb-0 flex-1">
-              <label className="form-label" htmlFor="total-income-input" style={{ paddingLeft: '4px' }}>Total Monthly Income (₹)</label>
+              <label className="form-label" htmlFor="total-income-input">Total Monthly Income (₹)</label>
               <input
                 id="total-income-input"
                 type="number"
@@ -196,41 +188,32 @@ export default function BudgetSetup() {
             <button
               type="submit"
               className="btn btn-primary"
-              style={{
-                paddingInline: '24px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                boxSizing: 'border-box',
-                height: 'auto',
-                minHeight: '48px',
-                alignSelf: 'flex-end'
-              }}
+              style={{ flexShrink: 0 }}
             >
               Update Income
             </button>
           </form>
 
           <div
-            className="stat-chiclet stat-chiclet-info"
-            style={{
-              minWidth: 0,
-              padding: '20px 24px',
-              boxSizing: 'border-box'
-            }}
+            className="card kpi-card kpi-info"
+            style={{ flex: 1, minWidth: 0, margin: 0 }}
           >
-            <div className="stat-chiclet-header">
-              <span className="stat-chiclet-title" style={{ paddingLeft: '4px' }}>Unallocated Balance</span>
-              <span className={`badge ${calculations.unallocated < 0 ? 'badge-danger' : 'badge-success'}`} style={{ whiteSpace: 'nowrap' }}>
-                {calculations.unallocated < 0 ? 'Over Allocated' : 'Available'}
+            <div className="kpi-content">
+              <span className="kpi-label">Unallocated Balance</span>
+              <span className={`kpi-value ${calculations.unallocated < 0 ? 'text-danger' : 'text-success'}`}>
+                {formatCurrency(calculations.unallocated)}
+              </span>
+              <span className="kpi-subtitle">
+                {calculations.unallocated < 0 ? 'Over Allocated' : 'Available to allocate'}
               </span>
             </div>
-            <div className={`stat-chiclet-value ${calculations.unallocated < 0 ? 'text-danger' : 'text-success'}`} style={{ paddingLeft: '4px' }}>
-              {formatCurrency(calculations.unallocated)}
+            <div className="kpi-icon kpi-icon-info">
+              <Target size={22} />
             </div>
           </div>
         </div>
 
-        <div className="mt-4 pt-3 border-top" style={{ borderTop: '1px solid var(--border-color)', paddingLeft: '4px', paddingRight: '4px' }}>
+        <div className="mt-3 pt-3 border-top">
           <ProgressBar 
             value={calculations.totalBudget} 
             max={totalIncome > 0 ? totalIncome : 1} 
@@ -242,14 +225,14 @@ export default function BudgetSetup() {
       </div>
 
       {/* Categories Table Section */}
-      <div className="card p-4">
-        <div className="flex-between mb-4">
-          <h3 className="card-title">Budget Categories</h3>
-          <div className="flex gap-2" style={{ gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button className="btn btn-secondary btn-sm" onClick={resetToDefaults} title="Reset to ₹26,000 budget plan defaults" style={{ paddingInline: '16px', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>
+      <div className="card p-6">
+        <div className="flex items-center mb-4">
+          <h3 className="card-title" style={{ margin: 0 }}>Budget Categories</h3>
+          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'nowrap' }}>
+            <button className="btn btn-secondary btn-sm" onClick={resetToDefaults} title="Reset to ₹26,000 budget plan defaults" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
               <RotateCcw size={16} /> Reset Defaults
             </button>
-            <button className="btn btn-primary btn-sm" onClick={() => setIsAddModalOpen(true)} style={{ paddingInline: '16px', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setIsAddModalOpen(true)} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
               <Plus size={16} /> Add Category
             </button>
           </div>
@@ -451,9 +434,9 @@ export default function BudgetSetup() {
               />
             </div>
 
-            <div className="modal-footer" style={{ padding: 0, marginTop: 'var(--space-lg)' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsAddModalOpen(false)} style={{ paddingInline: '20px', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>Cancel</button>
-              <button type="submit" className="btn btn-primary" style={{ paddingInline: '20px', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>Add Category</button>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Add Category</button>
             </div>
           </form>
         </Modal>
@@ -469,17 +452,15 @@ export default function BudgetSetup() {
           <p className="text-secondary text-sm mb-4">
             Are you sure you want to delete this category? Existing expenses in this category will remain, but the category budget allocation will be removed.
           </p>
-          <div className="modal-footer" style={{ padding: 0 }}>
-            <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)} style={{ paddingInline: '20px', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>Cancel</button>
-            <button className="btn btn-danger" onClick={() => handleDeleteConfirm(deleteConfirmId)} style={{ paddingInline: '20px', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>Yes, Delete</button>
+          <div className="modal-footer">
+            <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+            <button className="btn btn-danger" onClick={() => handleDeleteConfirm(deleteConfirmId)}>Yes, Delete</button>
           </div>
         </Modal>
       )}
 
       {/* Weekly Spending Guide Section */}
-      <div className="mt-4" style={{ marginTop: '24px', minWidth: 0 }}>
-        <WeeklySpendingGuideCard />
-      </div>
+      <WeeklySpendingGuideCard />
     </div>
   );
 }

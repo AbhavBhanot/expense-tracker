@@ -94,7 +94,7 @@ export default function QuickExpenseEntry() {
           <X size={18} />
         </button>
       </div>
-      <form className="quick-entry-form" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
         <div className="quick-entry-fields">
           <div className="form-group quick-field">
             <label className="form-label" htmlFor="qe-date">
@@ -150,7 +150,6 @@ export default function QuickExpenseEntry() {
 
           <div className="form-group quick-field">
             <label className="form-label" htmlFor="qe-amount">
-              <DollarSign size={14} />
               Amount (₹)
             </label>
             <input
@@ -202,7 +201,7 @@ export default function QuickExpenseEntry() {
               </>
             )}
           </button>
-          <span className="quick-entry-hint">Ctrl+Enter to save</span>
+          <span className="quick-entry-hint hidden-mobile">Ctrl+Enter to save</span>
         </div>
       </form>
     </div>

@@ -72,7 +72,7 @@ export default function KPICard({
         </div>
         {Icon && (
           <div className={`kpi-icon kpi-icon-${variant}`}>
-            <Icon size={24} />
+            <Icon size={20} />
           </div>
         )}
       </div>

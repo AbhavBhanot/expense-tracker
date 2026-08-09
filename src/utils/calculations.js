@@ -1,9 +1,117 @@
+import { DEFAULT_WEEKLY_GUIDE } from './constants';
+import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
+
 export const getStatusForPercent = (percent, thresholds) => {
   if (percent < thresholds.onTrack) return 'onTrack';
   if (percent < thresholds.monitor) return 'monitor';
   if (percent < thresholds.nearLimit) return 'nearLimit';
   if (percent < thresholds.critical) return 'critical';
   return 'overBudget';
+};
+
+export const getWeeklyGuideMetrics = (expenses = [], categories = [], monthStr) => {
+  const now = new Date();
+  let refDate = now;
+
+  if (monthStr) {
+    const [y, m] = monthStr.split('-').map(Number);
+    if (!isNaN(y) && !isNaN(m) && (now.getFullYear() !== y || (now.getMonth() + 1) !== m)) {
+      refDate = new Date(y, m - 1, 1);
+    }
+  }
+
+  const weekStart = startOfWeek(refDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(refDate, { weekStartsOn: 1 });
+
+  weekStart.setHours(0, 0, 0, 0);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const currentWeekExpenses = expenses.filter(exp => {
+    if (!exp || !exp.date) return false;
+    try {
+      const expDate = typeof exp.date === 'string' ? parseISO(exp.date) : new Date(exp.date);
+      return expDate >= weekStart && expDate <= weekEnd;
+    } catch {
+      return false;
+    }
+  });
+
+  const categoryMetrics = DEFAULT_WEEKLY_GUIDE.map(guideItem => {
+    const budgetCat = categories.find(c => 
+      c.name === guideItem.categoryName || 
+      c.name === guideItem.category
+    );
+
+    const weeklyLimit = Number(budgetCat?.weeklyLimit || guideItem.weeklyLimit || 0);
+    const monthlyBudget = Number(budgetCat?.planned || guideItem.monthlyBudget || 0);
+
+    const catExpenses = currentWeekExpenses.filter(e => 
+      e.category === guideItem.categoryName || 
+      e.category === guideItem.category || 
+      (budgetCat && e.category === budgetCat.name)
+    );
+
+    const weeklySpent = catExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const percentUsed = weeklyLimit > 0 ? (weeklySpent / weeklyLimit) * 100 : (weeklySpent > 0 ? 100 : 0);
+    const remaining = weeklyLimit - weeklySpent;
+    const isOverBudget = weeklySpent > weeklyLimit;
+    const overAmount = isOverBudget ? weeklySpent - weeklyLimit : 0;
+
+    return {
+      category: guideItem.category,
+      categoryName: guideItem.categoryName,
+      weeklyLimit,
+      monthlyBudget,
+      weeklySpent,
+      percentUsed,
+      remaining,
+      isOverBudget,
+      overAmount,
+      notes: guideItem.notes,
+      count: catExpenses.length
+    };
+  });
+
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dailyBreakdown = dayNames.map((dayName, idx) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + idx);
+    const dateStr = format(d, 'yyyy-MM-dd');
+
+    const dayExpenses = currentWeekExpenses.filter(e => {
+      try {
+        const eStr = format(typeof e.date === 'string' ? parseISO(e.date) : new Date(e.date), 'yyyy-MM-dd');
+        return eStr === dateStr;
+      } catch {
+        return false;
+      }
+    });
+
+    const total = dayExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    return {
+      dayLabel: dayName,
+      dateStr,
+      dateFormatted: format(d, 'dd MMM'),
+      total,
+      count: dayExpenses.length
+    };
+  });
+
+  const totalWeeklySpent = currentWeekExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const totalWeeklyLimit = categoryMetrics.reduce((sum, c) => sum + c.weeklyLimit, 0);
+  const hasExpensesThisWeek = currentWeekExpenses.length > 0 && totalWeeklySpent > 0;
+
+  return {
+    weekStart,
+    weekEnd,
+    weekLabel: `${format(weekStart, 'dd MMM')} - ${format(weekEnd, 'dd MMM yyyy')}`,
+    categoryMetrics,
+    dailyBreakdown,
+    totalWeeklySpent,
+    totalWeeklyLimit,
+    hasExpensesThisWeek
+  };
 };
 
 export const calculateCategoryTotals = (expenses = [], categories = []) => {

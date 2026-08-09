@@ -8,7 +8,8 @@ import {
   calculateSpendingPace,
   calculateEssentialVsDiscretionary,
   calculateFixedVsVariable,
-  getCumulativeSpending
+  getCumulativeSpending,
+  getWeeklyGuideMetrics
 } from '../utils/calculations';
 
 export function useBudgetCalculations() {
@@ -50,6 +51,10 @@ export function useBudgetCalculations() {
     getCumulativeSpending(expenses, currentMonth, categories), 
   [expenses, currentMonth, categories]);
 
+  const weeklyGuideMetrics = useMemo(() => 
+    getWeeklyGuideMetrics(expenses, categories, currentMonth), 
+  [expenses, categories, currentMonth]);
+
   return {
     categoryTotals,
     overallMetrics,
@@ -58,6 +63,8 @@ export function useBudgetCalculations() {
     spendingPace,
     essentialVsDiscretionary,
     fixedVsVariable,
-    cumulativeSpending
+    cumulativeSpending,
+    weeklyGuideMetrics
   };
 }
+

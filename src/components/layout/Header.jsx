@@ -29,40 +29,38 @@ export default function Header({ title, subtitle }) {
   };
 
   return (
-    <header className="page-header" style={{ fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)', borderBottom: '1px solid var(--border-color)' }}>
-      <div className="page-header-left" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-        <h2 className="page-title" style={{ margin: 0 }}>{title}</h2>
-        {subtitle && <p className="page-subtitle" style={{ margin: 0, color: 'var(--text-tertiary)' }}>{subtitle}</p>}
+    <header className="page-header">
+      <div className="page-header-left">
+        <h2 className="page-title">{title}</h2>
+        {subtitle && <p className="page-subtitle">{subtitle}</p>}
       </div>
-      <div className="page-header-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+      <div className="page-header-right">
         <button 
-          className="theme-toggle-btn btn btn-ghost btn-icon"
+          className="btn btn-ghost btn-icon hidden-mobile"
           onClick={toggleTheme}
-          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           aria-label="Toggle theme"
         >
-          {isDark ? <Sun size={20} className="text-warning" /> : <Moon size={20} className="text-info" />}
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-        <div className="month-selector" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', background: 'var(--bg-secondary)', padding: 'var(--space-xs) var(--space-sm)', borderRadius: 'var(--radius-md)' }}>
+        <div className="month-selector">
           <button 
             className="btn btn-ghost btn-icon"
             onClick={() => navigateMonth('prev')}
             aria-label="Previous month"
-            style={{ padding: 'var(--space-xs)' }}
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </button>
-          <div className="month-display" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', fontWeight: 500 }}>
-            <Calendar size={16} className="text-tertiary" />
+          <div className="month-display">
+            <Calendar size={14} className="text-tertiary" />
             <span className="month-label">{getMonthName(currentMonth)}</span>
           </div>
           <button 
             className="btn btn-ghost btn-icon"
             onClick={() => navigateMonth('next')}
             aria-label="Next month"
-            style={{ padding: 'var(--space-xs)' }}
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>

@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:ios": "VITE_CAPACITOR=true vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "cap:build": "npm run build && cap sync ios",
+    "cap:build": "npm run build:ios && npx cap sync ios",
     "cap:sync": "npx cap sync ios",
     "cap:open": "npx cap open ios",
-    "deploy:gh": "gh-pages -d dist"
+    "deploy:gh": "gh-pages -d dist",
+    "deploy:vercel": "vercel --prod"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.0",

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { tooltipDefaults, CHART_THEME, tickFont } from '../../utils/chartTheme';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -18,24 +19,24 @@ export default function SpendingTrendChart({ cumulativeSpending = [] }) {
     labels: cumulativeSpending.map(d => d.dateLabel),
     datasets: [
       {
-        label: 'Actual Spending',
+        label: 'Actual',
         data: cumulativeSpending.map(d => d.cumulative),
-        borderColor: '#2dd4bf',
-        backgroundColor: '#2dd4bf1a',
+        borderColor: CHART_THEME.accent,
+        backgroundColor: CHART_THEME.accentMuted,
         fill: true,
-        tension: 0.3,
+        tension: 0.35,
         pointRadius: 3,
-        pointHoverRadius: 6,
-        pointBackgroundColor: '#2dd4bf',
-        pointBorderColor: '#fff',
+        pointHoverRadius: 5,
+        pointBackgroundColor: CHART_THEME.accent,
+        pointBorderColor: CHART_THEME.tooltipBg,
         pointBorderWidth: 2,
-        borderWidth: 2.5,
+        borderWidth: 2,
       },
       {
-        label: 'Expected Pace',
+        label: 'Expected',
         data: cumulativeSpending.map(d => d.expected),
-        borderColor: '#3f3f46',
-        borderDash: [6, 4],
+        borderColor: CHART_THEME.accentDash,
+        borderDash: [5, 4],
         fill: false,
         tension: 0,
         pointRadius: 0,
@@ -48,33 +49,23 @@ export default function SpendingTrendChart({ cumulativeSpending = [] }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
+    interaction: { mode: 'index', intersect: false },
     scales: {
       x: {
-        grid: { 
-          color: '#2a2a32',
-          drawBorder: false 
-        },
+        grid: { color: CHART_THEME.gridColor, drawBorder: false },
         ticks: {
-          color: '#9ca3af',
-          font: { family: 'Inter', size: 11 },
-          maxRotation: 0,
+          color: CHART_THEME.tickColor,
+          font: tickFont(11),
           autoSkip: true,
           maxTicksLimit: 10,
         }
       },
       y: {
-        grid: { 
-          color: '#2a2a32',
-          drawBorder: false 
-        },
+        grid: { color: CHART_THEME.gridColor, drawBorder: false },
         ticks: {
-          color: '#9ca3af',
-          font: { family: 'Inter', size: 11 },
-          callback: (v) => `₹${(v / 1000).toFixed(0)}K`
+          color: CHART_THEME.tickColor,
+          font: tickFont(11),
+          callback: (v) => `₹${(v / 1000).toFixed(0)}K`,
         },
         beginAtZero: true,
       }
@@ -84,27 +75,17 @@ export default function SpendingTrendChart({ cumulativeSpending = [] }) {
         position: 'top',
         align: 'end',
         labels: {
-          color: '#9ca3af',
-          padding: 16,
+          color: CHART_THEME.tickColor,
+          padding: 14,
           usePointStyle: true,
-          pointStyleWidth: 10,
-          font: { size: 12, family: 'Inter' }
+          pointStyleWidth: 8,
+          font: { size: 11, family: CHART_THEME.fontFamily },
         }
       },
       tooltip: {
-        backgroundColor: '#1a1a20',
-        titleColor: '#f0f0f3',
-        bodyColor: '#9ca3af',
-        borderColor: '#2a2a32',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        titleFont: { family: 'Inter', weight: '600' },
-        bodyFont: { family: 'Inter' },
+        ...tooltipDefaults(),
         callbacks: {
-          label: (context) => {
-            return ` ${context.dataset.label}: ₹${context.raw.toLocaleString('en-IN')}`;
-          }
+          label: (context) => ` ${context.dataset.label}: ₹${context.raw.toLocaleString('en-IN')}`,
         }
       }
     }

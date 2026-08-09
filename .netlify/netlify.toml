@@ -7,7 +7,7 @@ headers = []
 [functions."*"]
 
 [build]
-publish = "/Users/abhav/Code/expense tracker/dist"
+publish = "dist"
 publishOrigin = "config"
 commandOrigin = "config"
 command = "npm run build"

@@ -25,8 +25,7 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
-export default function Sidebar({ activePage, onNavigate }) {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ activePage, onNavigate, collapsed = false, onToggleCollapse }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { state, toggleTheme } = useBudget();
   const isDark = (state.settings?.theme || 'dark') === 'dark';
@@ -36,16 +35,40 @@ export default function Sidebar({ activePage, onNavigate }) {
     setMobileOpen(false);
   };
 
+  const handleToggle = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    }
+  };
+
   return (
     <>
-      {/* Mobile toggle button */}
-      <button 
-        className="sidebar-mobile-toggle"
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Toggle navigation"
-      >
-        {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {/* Mobile Top Bar */}
+      <div className="mobile-top-bar hidden-desktop">
+        <div className="mobile-top-bar-left">
+          <button 
+            className="sidebar-mobile-toggle"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle navigation"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <div className="mobile-logo">
+            <div className="sidebar-logo-icon" style={{ width: '26px', height: '26px' }}>
+              <Wallet size={14} />
+            </div>
+            <span className="mobile-logo-title">BudgetTrack</span>
+          </div>
+        </div>
+        <button 
+          className="btn btn-ghost btn-icon"
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+      </div>
 
       {/* Mobile overlay */}
       {mobileOpen && (
@@ -55,22 +78,22 @@ export default function Sidebar({ activePage, onNavigate }) {
       <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <div className="sidebar-logo-icon" style={{ backgroundColor: 'var(--accent-primary)', color: '#ffffff' }}>
-              <Wallet size={24} />
+            <div className="sidebar-logo-icon">
+              <Wallet size={18} />
             </div>
             {!collapsed && (
               <div className="sidebar-logo-text">
-                <h1 className="sidebar-title" style={{ fontFamily: 'inherit' }}>BudgetTrack</h1>
-                <span className="sidebar-subtitle" style={{ fontFamily: 'inherit' }}>Smart Expense Tracker</span>
+                <h1 className="sidebar-title">BudgetTrack</h1>
+                <span className="sidebar-subtitle">Expense Tracker</span>
               </div>
             )}
           </div>
           <button 
             className="btn btn-ghost btn-icon sidebar-collapse-btn hidden-mobile"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={handleToggle}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <ChevronLeft size={18} className={collapsed ? 'rotate-180' : ''} />
+            <ChevronLeft size={16} className={collapsed ? 'rotate-180' : ''} />
           </button>
         </div>
 
@@ -83,9 +106,8 @@ export default function Sidebar({ activePage, onNavigate }) {
                 className={`nav-item ${activePage === item.id ? 'active' : ''}`}
                 onClick={() => handleNav(item.id)}
                 title={collapsed ? item.label : undefined}
-                style={{ fontFamily: 'inherit' }}
               >
-                <Icon size={20} className="nav-icon" />
+                <Icon size={18} className="nav-icon" />
                 {!collapsed && <span className="nav-label">{item.label}</span>}
               </button>
             );
@@ -94,17 +116,22 @@ export default function Sidebar({ activePage, onNavigate }) {
 
         <div className="sidebar-footer">
           <button 
-            className="nav-item theme-switch-nav-item"
+            className="nav-item"
             onClick={toggleTheme}
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            style={{ fontFamily: 'inherit' }}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
-            {isDark ? <Sun size={20} className="nav-icon text-warning" /> : <Moon size={20} className="nav-icon text-info" />}
-            {!collapsed && <span className="nav-label">{isDark ? "Light Mode" : "Dark Mode"}</span>}
+            {isDark
+              ? <Sun size={18} className="nav-icon" />
+              : <Moon size={18} className="nav-icon" />
+            }
+            {!collapsed && (
+              <span className="nav-label">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            )}
           </button>
           {!collapsed && (
             <div className="sidebar-footer-text mt-2">
-              <span className="text-tertiary text-xs" style={{ fontFamily: 'inherit' }}>BudgetTracker v1.0</span>
+              <span className="text-tertiary text-xs">BudgetTracker v1.0</span>
+              <span className="text-tertiary text-xs" style={{ display: 'block', marginTop: '2px' }}>Built for My Love ♡</span>
             </div>
           )}
         </div>

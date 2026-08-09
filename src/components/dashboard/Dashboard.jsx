@@ -8,12 +8,10 @@ import Header from '../layout/Header';
 import KPICard from './KPICard';
 import ProgressBar from '../shared/ProgressBar';
 import QuickExpenseEntry from './QuickExpenseEntry';
-import SpendingPieChart from './SpendingPieChart';
 import BudgetVsActualChart from './BudgetVsActualChart';
 import SpendingTrendChart from './SpendingTrendChart';
 import WeeklySpendingChart from './WeeklySpendingChart';
 import WeeklySpendingGuideCard from './WeeklySpendingGuideCard';
-import CategoryProgressList from './CategoryProgressList';
 import AlertsPanel from './AlertsPanel';
 import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { useAlerts } from '../../hooks/useAlerts';
@@ -147,17 +145,13 @@ export default function Dashboard() {
 
       {/* Charts Grid */}
       <div className="charts-grid">
-        <SpendingPieChart categoryTotals={categoryTotals} />
         <BudgetVsActualChart categoryTotals={categoryTotals} />
         <SpendingTrendChart cumulativeSpending={cumulativeSpending} />
         <WeeklySpendingChart weeklySpending={weeklySpending} />
       </div>
 
-      {/* Category Progress + Alerts */}
-      <div className="dashboard-bottom-grid">
-        <CategoryProgressList categoryTotals={categoryTotals} />
-        <AlertsPanel alerts={alerts} />
-      </div>
+      {/* Alerts */}
+      <AlertsPanel alerts={alerts} />
     </div>
   );
 }

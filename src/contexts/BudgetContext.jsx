@@ -202,6 +202,7 @@ function budgetReducer(state, action) {
     case 'RESET_TO_DEFAULTS': {
       return {
         ...state,
+        _version: DATA_VERSION,
         months: {
           ...state.months,
           [currentMonth]: {
@@ -253,13 +254,32 @@ function budgetReducer(state, action) {
   }
 }
 
+const DATA_VERSION = '3';
+const STORAGE_KEY = 'budget-tracker-data';
+
+// Run before React initializes — if the stored version is stale, wipe it
+// so useLocalStorage falls back to initialState (the correct defaults).
+if (typeof window !== 'undefined') {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed._version !== DATA_VERSION) {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  } catch {
+    window.localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
 export function BudgetProvider({ children }) {
-  const [storedData, setStoredData] = useLocalStorage('budget-tracker-data', initialState);
-  
+  const [storedData, setStoredData] = useLocalStorage(STORAGE_KEY, initialState);
+
   const [state, dispatch] = useReducer(budgetReducer, storedData);
 
   useEffect(() => {
-    setStoredData(state);
+    setStoredData({ ...state, _version: DATA_VERSION });
   }, [state, setStoredData]);
 
   const toggleTheme = useCallback(() => {

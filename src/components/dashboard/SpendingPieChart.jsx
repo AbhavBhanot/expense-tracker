@@ -1,18 +1,23 @@
 import React from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { PieChart } from 'lucide-react';
 import { CHART_COLORS } from '../../utils/constants';
+import { tooltipDefaults, CHART_THEME } from '../../utils/chartTheme';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function SpendingPieChart({ categoryTotals = [] }) {
   const spent = categoryTotals.filter(c => c.actualSpent > 0 && c.priority !== 'Savings' && c.priority !== 'Investment');
-  
+
   if (spent.length === 0) {
     return (
       <div className="chart-card card">
         <h4 className="card-title">Spending by Category</h4>
-        <div className="chart-empty">No spending data yet</div>
+        <div className="chart-empty">
+          <PieChart size={20} className="text-tertiary" />
+          <span>No category spending logged for this month</span>
+        </div>
       </div>
     );
   }
@@ -22,39 +27,30 @@ export default function SpendingPieChart({ categoryTotals = [] }) {
     datasets: [{
       data: spent.map(c => c.actualSpent),
       backgroundColor: CHART_COLORS.slice(0, spent.length),
-      borderColor: '#1a1a20',
+      borderColor: CHART_THEME.tooltipBg,
       borderWidth: 2,
-      hoverBorderWidth: 3,
-      hoverBorderColor: '#fff',
-      hoverOffset: 8,
+      hoverBorderWidth: 0,
+      hoverOffset: 6,
     }]
   };
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '65%',
+    cutout: '68%',
     plugins: {
       legend: {
         position: 'bottom',
         labels: {
-          color: '#9ca3af',
-          padding: 16,
+          color: CHART_THEME.tickColor,
+          padding: 14,
           usePointStyle: true,
-          pointStyleWidth: 12,
-          font: { size: 12, family: 'Inter' }
+          pointStyleWidth: 10,
+          font: { size: 11, family: CHART_THEME.fontFamily },
         }
       },
       tooltip: {
-        backgroundColor: '#1a1a20',
-        titleColor: '#f0f0f3',
-        bodyColor: '#9ca3af',
-        borderColor: '#2a2a32',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        titleFont: { family: 'Inter', weight: '600' },
-        bodyFont: { family: 'Inter' },
+        ...tooltipDefaults(),
         callbacks: {
           label: (context) => {
             const total = context.dataset.data.reduce((a, b) => a + b, 0);

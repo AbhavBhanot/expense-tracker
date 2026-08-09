@@ -27,8 +27,8 @@ export default function ProgressBar({
   return (
     <div className={`progress-wrapper ${className}`}>
       {label && (
-        <div className="progress-header" style={{ paddingLeft: '4px', paddingRight: '4px' }}>
-          <span className="progress-label-text" style={{ paddingLeft: '2px' }}>{label}</span>
+        <div className="progress-header">
+          <span className="progress-label-text">{label}</span>
           {showPercent && (
             <span className={`progress-percent text-${variantClass}`}>
               {actualPercent.toFixed(1)}%
@@ -45,13 +45,6 @@ export default function ProgressBar({
           aria-valuemin={0}
           aria-valuemax={max}
         />
-        {actualPercent > 100 && (
-          <div className="progress-overflow-indicator">
-            <span className="progress-overflow-text">
-              {actualPercent.toFixed(0)}%
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

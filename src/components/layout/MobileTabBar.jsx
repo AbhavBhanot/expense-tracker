@@ -38,9 +38,8 @@ export default function MobileTabBar({ activePage, onNavigate }) {
           className="mobile-tab-fab"
           onClick={() => setIsQuickAddModalOpen(true)}
           aria-label="Add expense"
-          style={{ backgroundColor: 'var(--accent-primary)', color: '#ffffff' }}
         >
-          <Plus size={24} />
+          <Plus size={22} />
         </button>
 
         <button 

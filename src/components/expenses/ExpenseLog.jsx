@@ -15,7 +15,7 @@ export default function ExpenseLog() {
   const { paymentMethods } = state.settings;
 
   // Add Expense Form State
-  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [isAddFormOpen, setIsAddFormOpen] = useState(true);
   const [newExpense, setNewExpense] = useState({
     date: new Date().toISOString().split('T')[0],
     description: '',
@@ -163,30 +163,29 @@ export default function ExpenseLog() {
       <Header title="Expense Log" subtitle="Track and manage your daily transactions" />
 
       {/* Add Expense Section */}
-      <div className="card" style={{ marginBottom: '1.5rem', transition: 'all 0.3s ease' }}>
+      <div className="card expense-card">
         <div 
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+          className="expense-form-header"
           onClick={() => setIsAddFormOpen(!isAddFormOpen)}
         >
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+          <h3 className="expense-form-title">
             <Plus size={20} className="text-primary" /> Record New Expense
           </h3>
-          <button className="btn btn-ghost btn-icon">
+          <button className="btn btn-ghost btn-icon" type="button" aria-label="Toggle expense form">
             {isAddFormOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
         </div>
 
         {isAddFormOpen && (
-          <form onSubmit={handleAddSubmit} onKeyDown={handleKeyDown} style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div className="form-group">
+          <form className="expense-form" onSubmit={handleAddSubmit} onKeyDown={handleKeyDown} style={{ paddingTop: 'var(--space-5)' }}>
+            <div className="expense-form-grid">
+              <div className="form-group expense-field-date">
                 <label className="form-label">Date *</label>
-                <div style={{ position: 'relative' }}>
-                  <Calendar size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <div className="input-with-icon">
+                  <Calendar size={16} className="input-icon" />
                   <input 
                     type="date" 
                     className={`form-input ${addErrors.date ? 'error' : ''}`}
-                    style={{ paddingLeft: '36px' }}
                     value={newExpense.date}
                     onChange={e => setNewExpense({...newExpense, date: e.target.value})}
                   />
@@ -194,7 +193,7 @@ export default function ExpenseLog() {
                 {addErrors.date && <span className="form-error">{addErrors.date}</span>}
               </div>
 
-              <div className="form-group">
+              <div className="form-group expense-field-desc">
                 <label className="form-label">Description *</label>
                 <input 
                   type="text" 
@@ -207,7 +206,7 @@ export default function ExpenseLog() {
                 {addErrors.description && <span className="form-error">{addErrors.description}</span>}
               </div>
 
-              <div className="form-group">
+              <div className="form-group expense-field-category">
                 <label className="form-label">Category *</label>
                 <select 
                   className={`form-select ${addErrors.category ? 'error' : ''}`}
@@ -222,7 +221,7 @@ export default function ExpenseLog() {
                 {addErrors.category && <span className="form-error">{addErrors.category}</span>}
               </div>
 
-              <div className="form-group">
+              <div className="form-group expense-field-amount">
                 <label className="form-label">Amount (₹) *</label>
                 <input 
                   type="number" 
@@ -235,13 +234,12 @@ export default function ExpenseLog() {
                 {addErrors.amount && <span className="form-error">{addErrors.amount}</span>}
               </div>
 
-              <div className="form-group">
+              <div className="form-group expense-field-payment">
                 <label className="form-label">Payment Method</label>
-                <div style={{ position: 'relative' }}>
-                  <CreditCard size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                  <select 
-                    className="form-select"
-                    style={{ paddingLeft: '36px' }}
+                <div className="select-with-icon">
+                  <CreditCard size={16} className="select-icon" />
+                  <select
+                    className="form-select select-with-icon-input"
                     value={newExpense.paymentMethod}
                     onChange={e => setNewExpense({...newExpense, paymentMethod: e.target.value})}
                   >
@@ -252,7 +250,7 @@ export default function ExpenseLog() {
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="form-group expense-field-notes">
                 <label className="form-label">Notes</label>
                 <input 
                   type="text" 
@@ -264,10 +262,10 @@ export default function ExpenseLog() {
               </div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Tip: Press Ctrl+Enter to submit</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                {addSuccess && <span className="text-success" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Expense added successfully!</span>}
+            <div className="expense-form-footer">
+              <span className="expense-form-tip hidden-mobile">Tip: Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to submit</span>
+              <div className="expense-form-actions">
+                {addSuccess && <span className="text-success expense-success-msg">Expense added successfully!</span>}
                 <button type="submit" className="btn btn-primary">Save Expense</button>
               </div>
             </div>
@@ -276,23 +274,22 @@ export default function ExpenseLog() {
       </div>
 
       {/* Filters Bar */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-          <div className="form-group" style={{ margin: 0, flex: '1 1 200px' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+      <div className="card expense-filters-card">
+        <div className="expense-filters-toolbar">
+          <div className="form-group filter-field-search">
+            <div className="input-with-icon">
+              <Search size={16} className="input-icon" />
               <input 
                 type="text" 
                 className="form-input" 
                 placeholder="Search descriptions..."
-                style={{ paddingLeft: '36px' }}
                 value={filters.search}
                 onChange={e => setFilters({...filters, search: e.target.value})}
               />
             </div>
           </div>
           
-          <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
+          <div className="form-group filter-field-category">
             <select 
               className="form-select"
               value={filters.category}
@@ -305,7 +302,7 @@ export default function ExpenseLog() {
             </select>
           </div>
 
-          <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
+          <div className="form-group filter-field-payment">
             <select 
               className="form-select"
               value={filters.paymentMethod}
@@ -318,25 +315,27 @@ export default function ExpenseLog() {
             </select>
           </div>
 
-          <div className="form-group" style={{ margin: 0 }}>
-            <input 
-              type="date" 
-              className="form-input" 
-              value={filters.dateFrom}
-              onChange={e => setFilters({...filters, dateFrom: e.target.value})}
-            />
-          </div>
-          <span style={{ color: 'var(--text-secondary)', paddingBottom: '0.5rem' }}>to</span>
-          <div className="form-group" style={{ margin: 0 }}>
-            <input 
-              type="date" 
-              className="form-input" 
-              value={filters.dateTo}
-              onChange={e => setFilters({...filters, dateTo: e.target.value})}
-            />
+          <div className="filter-date-group">
+            <div className="form-group filter-field-date">
+              <input 
+                type="date" 
+                className="form-input" 
+                value={filters.dateFrom}
+                onChange={e => setFilters({...filters, dateFrom: e.target.value})}
+              />
+            </div>
+            <span className="filter-date-separator">to</span>
+            <div className="form-group filter-field-date">
+              <input 
+                type="date" 
+                className="form-input" 
+                value={filters.dateTo}
+                onChange={e => setFilters({...filters, dateTo: e.target.value})}
+              />
+            </div>
           </div>
 
-          <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
+          <div className="form-group filter-field-sort">
             <select 
               className="form-select"
               value={sortBy}
@@ -348,27 +347,27 @@ export default function ExpenseLog() {
             </select>
           </div>
 
-          <button className="btn btn-ghost" onClick={clearFilters} style={{ padding: '0.5rem 1rem' }}>
+          <button type="button" className="btn btn-ghost filter-clear-btn" onClick={clearFilters}>
             Clear
           </button>
         </div>
       </div>
 
       {/* Expenses Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card expense-results-card">
         {filteredExpenses.length === 0 ? (
-          <div style={{ padding: '3rem' }}>
+          <div className="expense-empty-state-wrapper">
             <EmptyState 
               icon={Filter} 
               title="No expenses found" 
-              description={expenses.length === 0 ? "You haven't recorded any expenses this month." : "No expenses match your current filters."}
+              description={expenses.length === 0 ? "Your recorded expenses will appear here." : "No expenses match your current filters."}
               action={expenses.length > 0 ? clearFilters : () => setIsAddFormOpen(true)}
               actionLabel={expenses.length > 0 ? "Clear Filters" : "Add Expense"}
             />
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ width: '100%' }}>
+          <div className="expense-table-wrapper">
+            <table className="data-table expense-table">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -385,19 +384,19 @@ export default function ExpenseLog() {
                     <td style={{ whiteSpace: 'nowrap' }}>{formatDate(exp.date)}</td>
                     <td>
                       <div><strong>{exp.description}</strong></div>
-                      {exp.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{exp.notes}</div>}
+                      {exp.notes && <div className="text-secondary text-xs" style={{ marginTop: '2px' }}>{exp.notes}</div>}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: getCategoryColor(exp.category) }}></div>
-                        {getCategoryName(exp.category)}
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: getCategoryColor(exp.category), flexShrink: 0 }}></div>
+                        <span>{getCategoryName(exp.category)}</span>
                       </div>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(exp.amount)}</td>
+                    <td className="text-right font-bold">{formatCurrency(exp.amount)}</td>
                     <td><span className="badge badge-secondary" style={{ whiteSpace: 'nowrap' }}>{exp.paymentMethod}</span></td>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-icon" onClick={() => handleEditStart(exp)}><Edit2 size={18} /></button>
-                      <button className="btn btn-icon text-danger" onClick={() => setDeleteConfirmId(exp.id)}><Trash2 size={18} /></button>
+                    <td className="text-right" style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => handleEditStart(exp)} title="Edit"><Edit2 size={16} /></button>
+                      <button className="btn btn-ghost btn-sm btn-icon text-danger" onClick={() => setDeleteConfirmId(exp.id)} title="Delete"><Trash2 size={16} /></button>
                     </td>
                   </tr>
                 ))}
@@ -408,11 +407,11 @@ export default function ExpenseLog() {
         
         {/* Summary Footer */}
         {filteredExpenses.length > 0 && (
-          <div style={{ padding: '1rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          <div className="expense-summary-bar">
+            <span className="expense-summary-count">
               Showing {filteredExpenses.length} transaction{filteredExpenses.length !== 1 ? 's' : ''}
             </span>
-            <span style={{ fontSize: '1.1rem' }}>
+            <span className="expense-summary-total">
               Total: <strong>{formatCurrency(totalFilteredAmount)}</strong>
             </span>
           </div>
@@ -495,8 +494,8 @@ export default function ExpenseLog() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-              <button type="button" className="btn btn-ghost" onClick={() => setEditModalOpen(false)}>Cancel</button>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setEditModalOpen(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary">Save Changes</button>
             </div>
           </form>
@@ -505,12 +504,12 @@ export default function ExpenseLog() {
 
       {/* Delete Confirmation Modal */}
       <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Delete Expense" size="sm">
-        <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-          <AlertCircle size={48} className="text-danger" style={{ margin: '0 auto 1rem' }} />
-          <p>Are you sure you want to delete this expense? This action cannot be undone.</p>
+        <div className="flex-center flex-col" style={{ padding: 'var(--space-4) 0', gap: 'var(--space-4)', textAlign: 'center' }}>
+          <AlertCircle size={44} className="text-danger" />
+          <p className="text-secondary text-sm">Are you sure you want to delete this expense? This action cannot be undone.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
-          <button className="btn btn-ghost" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
           <button className="btn btn-danger" onClick={() => {
             deleteExpense(deleteConfirmId);
             setDeleteConfirmId(null);

@@ -22,17 +22,41 @@ const PAGES = {
 };
 
 function App() {
-  const [activePage, setActivePage] = useState('dashboard');
+  const [activePage, setActivePage] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return PAGES[hash] ? hash : 'dashboard';
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  React.useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (PAGES[hash]) setActivePage(hash);
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const handleNavigate = (page) => {
+    window.location.hash = page;
+    setActivePage(page);
+  };
+
   const PageComponent = PAGES[activePage] || Dashboard;
 
   return (
     <BudgetProvider>
-      <div className="app-layout">
-        <Sidebar activePage={activePage} onNavigate={setActivePage} />
+      <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed-layout' : ''}`}>
+        <Sidebar 
+          activePage={activePage} 
+          onNavigate={handleNavigate} 
+          collapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
         <Layout>
           <PageComponent />
         </Layout>
-        <MobileTabBar activePage={activePage} onNavigate={setActivePage} />
+        <MobileTabBar activePage={activePage} onNavigate={handleNavigate} />
       </div>
     </BudgetProvider>
   );

@@ -9,9 +9,11 @@ import { useBudget } from '../../contexts/BudgetContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import Header from '../layout/Header';
 import { CHART_COLORS } from '../../utils/constants';
+import SpendingPieChart from '../dashboard/SpendingPieChart';
+import CategoryProgressList from '../dashboard/CategoryProgressList';
 import { 
   AlertCircle, TrendingUp, TrendingDown, DollarSign, 
-  PieChart, BarChart3, Calendar, Layers, Activity 
+  PieChart, BarChart3, Calendar, Activity 
 } from 'lucide-react';
 
 ChartJS.register(
@@ -25,7 +27,7 @@ export default function SpendingAnalysis() {
   const currentMonthData = state.months[state.currentMonth] || { expenses: [], budget: { categories: [] } };
   const { expenses } = currentMonthData;
 
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('proportions');
 
   const tooltipOptions = {
     backgroundColor: '#1a1a20',
@@ -189,14 +191,8 @@ export default function SpendingAnalysis() {
       <Header title="Spending Analysis" subtitle="Deep financial insights, category proportions, and spending velocity" />
 
       {/* Filter Tabs */}
-      <div className="card p-2 flex-between gap-2" style={{ overflowX: 'auto' }}>
+      <div className="card p-3 flex-between gap-2" style={{ overflowX: 'auto' }}>
         <div className="flex gap-2">
-          <button 
-            className={`btn ${activeTab === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setActiveTab('all')}
-          >
-            <Layers size={16} /> Overview
-          </button>
           <button 
             className={`btn ${activeTab === 'proportions' ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setActiveTab('proportions')}
@@ -279,7 +275,7 @@ export default function SpendingAnalysis() {
       </div>
 
       {/* Proportions Section with Stat Chiclets */}
-      {(activeTab === 'all' || activeTab === 'proportions') && (
+      {activeTab === 'proportions' && (
         <div className="grid-2">
           <div className="card chart-card">
             <h4 className="card-title">
@@ -340,45 +336,53 @@ export default function SpendingAnalysis() {
       )}
 
       {/* Top Categories & Daily Burn Section */}
-      {(activeTab === 'all' || activeTab === 'top') && (
-        <div className="card chart-card">
-          <h4 className="card-title">
-            <BarChart3 size={18} />
-            Top 5 Spending Categories
-          </h4>
-          <div className="grid-2 gap-4">
-            <div className="chart-container chart-container-bar">
-              <Bar data={topSpendingData} options={topSpendingOptions} />
-            </div>
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Category</th>
-                    <th className="text-right">Spent</th>
-                    <th className="text-right">% of Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topCategories.map((cat, idx) => (
-                    <tr key={cat.id || cat.name}>
-                      <td className="text-tertiary">#{idx + 1}</td>
-                      <td className="font-medium">{cat.name}</td>
-                      <td className="text-right font-semibold">{formatCurrency(cat.actualSpent)}</td>
-                      <td className="text-right text-tertiary">
-                        {formatPercent((cat.actualSpent / (overallMetrics.totalSpent || 1)) * 100)}
-                      </td>
+      {activeTab === 'top' && (
+        <>
+          {/* Pie chart + category progress from dashboard */}
+          <div className="dashboard-bottom-grid">
+            <SpendingPieChart categoryTotals={categoryTotals} />
+            <CategoryProgressList categoryTotals={categoryTotals} />
+          </div>
+
+          <div className="card chart-card">
+            <h4 className="card-title">
+              <BarChart3 size={18} />
+              Top 5 Spending Categories
+            </h4>
+            <div className="grid-2 gap-4">
+              <div className="chart-container chart-container-bar">
+                <Bar data={topSpendingData} options={topSpendingOptions} />
+              </div>
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Category</th>
+                      <th className="text-right">Spent</th>
+                      <th className="text-right">% of Total</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {topCategories.map((cat, idx) => (
+                      <tr key={cat.id || cat.name}>
+                        <td className="text-tertiary">#{idx + 1}</td>
+                        <td className="font-medium">{cat.name}</td>
+                        <td className="text-right font-semibold">{formatCurrency(cat.actualSpent)}</td>
+                        <td className="text-right text-tertiary">
+                          {formatPercent((cat.actualSpent / (overallMetrics.totalSpent || 1)) * 100)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
-      {(activeTab === 'all' || activeTab === 'velocity') && (
+      {activeTab === 'velocity' && (
         <div className="card chart-card">
           <h4 className="card-title">
             <Calendar size={18} />
