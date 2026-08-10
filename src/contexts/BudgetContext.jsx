@@ -297,9 +297,10 @@ export function BudgetProvider({ children }) {
     loadedUserIdRef.current = user.id;
     cloudLoadedRef.current = false; // reset for new user
 
-    // Reset in-memory state immediately so the new user never sees the previous user's data
+    // Directly wipe localStorage so no stale data bleeds through the useLocalStorage closure
+    window.localStorage.removeItem(STORAGE_KEY);
+    // Reset in-memory state to clean defaults immediately
     dispatch({ type: 'RESET_STATE' });
-    setStoredData({ ...initialState, _version: DATA_VERSION });
 
     supabase
       .from('user_data')
@@ -311,9 +312,12 @@ export function BudgetProvider({ children }) {
           // Strip _version before dispatching — reducer doesn't expect it in state
           const { _version: _v, ...cleanData } = data.data;
           dispatch({ type: 'IMPORT_DATA', payload: cleanData });
-          setStoredData({ ...data.data, _version: DATA_VERSION });
+          // Write cloud data directly to localStorage as fresh cache
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data.data, _version: DATA_VERSION }));
+        } else {
+          // New user — persist initialState as their starting cache
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...initialState, _version: DATA_VERSION }));
         }
-        // No cloud data found (new user) — keep initialState
         cloudLoadedRef.current = true;
       });
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -323,8 +327,9 @@ export function BudgetProvider({ children }) {
     if (!user) {
       loadedUserIdRef.current = null;
       cloudLoadedRef.current = false;
+      // Directly wipe localStorage — don't rely on setStoredData's stale closure
+      window.localStorage.removeItem(STORAGE_KEY);
       dispatch({ type: 'RESET_STATE' });
-      setStoredData({ ...initialState, _version: DATA_VERSION });
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
