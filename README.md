@@ -1,16 +1,59 @@
-# React + Vite
+# BudgetTrack — Personal Expense & Budget Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Live app: **https://budget-track-1.vercel.app**
 
-Currently, two official plugins are available:
+A personal finance tracker built with React + Vite, deployed on Vercel, with Supabase for authentication and cloud data sync.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Google OAuth login (via Supabase)
+- Email / password signup and login
+- Per-user cloud data sync (Supabase Postgres)
+- Budget setup, expense logging, spending analysis
+- Dark / light theme
+- iOS app via Capacitor
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the Oxlint configuration
+- React 19 + Vite
+- Supabase (auth + Postgres database)
+- Chart.js / react-chartjs-2
+- Deployed on Vercel
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Setup
+
+### 1. Install dependencies
+```bash
+npm install
+```
+
+### 2. Create `.env` file
+```bash
+cp .env.example .env
+```
+Fill in your Supabase URL and anon key (Supabase Dashboard → Settings → API).
+
+### 3. Set up Supabase database
+Run `supabase/migrations/001_initial_schema.sql` in your Supabase SQL Editor.
+
+### 4. Enable Google OAuth in Supabase
+Supabase Dashboard → Authentication → Providers → Google.
+
+Add these to Google Cloud Console OAuth credentials:
+- **Authorized JavaScript origins:** `https://budget-track-1.vercel.app`, `http://localhost:5173`
+- **Authorized redirect URI:** `https://<your-supabase-project-id>.supabase.co/auth/v1/callback`
+
+### 5. Run locally
+```bash
+npm run dev
+```
+
+### 6. Deploy
+Push to GitHub — Vercel auto-deploys. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Vercel environment variables.
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/public key |
