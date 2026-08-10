@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { DEFAULT_CATEGORIES, DEFAULT_MONTHLY_INCOME } from '../utils/constants';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 const initialState = {
   currentMonth: '2026-08',
@@ -274,13 +276,74 @@ if (typeof window !== 'undefined') {
 }
 
 export function BudgetProvider({ children }) {
+  const { user } = useAuth();
   const [storedData, setStoredData] = useLocalStorage(STORAGE_KEY, initialState);
-
   const [state, dispatch] = useReducer(budgetReducer, storedData);
 
+  const syncTimeoutRef = useRef(null);
+  const loadedUserIdRef = useRef(null); // tracks which user's data is currently loaded
+  const cloudLoadedRef = useRef(false); // guards sync until initial cloud fetch is done
+
+  // Load cloud data when user changes
+  useEffect(() => {
+    if (!supabase || !user?.id) return;
+    if (loadedUserIdRef.current === user.id) return; // already loaded for this user
+
+    loadedUserIdRef.current = user.id;
+    cloudLoadedRef.current = false; // reset for new user
+
+    supabase
+      .from('user_data')
+      .select('data')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.data) {
+          // Strip _version before dispatching — reducer doesn't expect it in state
+          const { _version: _v, ...cleanData } = data.data;
+          dispatch({ type: 'IMPORT_DATA', payload: cleanData });
+          setStoredData({ ...data.data, _version: DATA_VERSION });
+        }
+        // No cloud data found (new user) — keep current localStorage data
+        cloudLoadedRef.current = true;
+      });
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset loaded tracking on logout
+  useEffect(() => {
+    if (!user) {
+      loadedUserIdRef.current = null;
+      cloudLoadedRef.current = false;
+    }
+  }, [user]);
+
+  // Save to localStorage on every state change
   useEffect(() => {
     setStoredData({ ...state, _version: DATA_VERSION });
   }, [state, setStoredData]);
+
+  // Debounced sync to Supabase — only after initial cloud load completes
+  useEffect(() => {
+    if (!supabase || !user?.id || !cloudLoadedRef.current) return;
+
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+
+    syncTimeoutRef.current = setTimeout(() => {
+      supabase
+        .from('user_data')
+        .upsert(
+          { user_id: user.id, data: state, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        )
+        .then(({ error }) => {
+          if (error) console.error('Cloud sync failed:', error.message);
+        });
+    }, 1500);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [state, user?.id]);
 
   const toggleTheme = useCallback(() => {
     dispatch({ type: 'TOGGLE_THEME' });
@@ -358,9 +421,9 @@ export function BudgetProvider({ children }) {
     getCategories,
     getExpenses
   }), [
-    state, 
-    addExpense, editExpense, deleteExpense, 
-    addCategory, updateCategory, deleteCategory, 
+    state,
+    addExpense, editExpense, deleteExpense,
+    addCategory, updateCategory, deleteCategory,
     switchMonth, createMonth, resetToDefaults, toggleTheme,
     getCurrentMonthData, getCategories, getExpenses
   ]);

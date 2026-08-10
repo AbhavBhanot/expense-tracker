@@ -11,9 +11,11 @@ import {
   X,
   ChevronLeft,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,6 +30,7 @@ const NAV_ITEMS = [
 export default function Sidebar({ activePage, onNavigate, collapsed = false, onToggleCollapse }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { state, toggleTheme } = useBudget();
+  const { user, logout } = useAuth();
   const isDark = (state.settings?.theme || 'dark') === 'dark';
 
   const handleNav = (id) => {
@@ -39,6 +42,16 @@ export default function Sidebar({ activePage, onNavigate, collapsed = false, onT
     if (onToggleCollapse) {
       onToggleCollapse();
     }
+  };
+
+  const getUserInitials = (name) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
   };
 
   return (
@@ -60,14 +73,26 @@ export default function Sidebar({ activePage, onNavigate, collapsed = false, onT
             <span className="mobile-logo-title">BudgetTrack</span>
           </div>
         </div>
-        <button 
-          className="btn btn-ghost btn-icon"
-          onClick={toggleTheme}
-          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          aria-label="Toggle theme"
-        >
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            className="btn btn-ghost btn-icon"
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          {user && (
+            <button 
+              className="btn btn-ghost btn-icon"
+              onClick={logout}
+              title="Log Out"
+              aria-label="Log Out"
+            >
+              <LogOut size={18} className="text-danger" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mobile overlay */}
@@ -115,6 +140,24 @@ export default function Sidebar({ activePage, onNavigate, collapsed = false, onT
         </nav>
 
         <div className="sidebar-footer">
+          {user && (
+            <div className={`sidebar-user-badge ${collapsed ? 'collapsed' : ''}`}>
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="sidebar-user-avatar" />
+              ) : (
+                <div className="sidebar-user-initials">
+                  {getUserInitials(user.name)}
+                </div>
+              )}
+              {!collapsed && (
+                <div className="sidebar-user-info">
+                  <span className="sidebar-user-name" title={user.name}>{user.name}</span>
+                  <span className="sidebar-user-email" title={user.email}>{user.email}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <button 
             className="nav-item"
             onClick={toggleTheme}
@@ -128,6 +171,18 @@ export default function Sidebar({ activePage, onNavigate, collapsed = false, onT
               <span className="nav-label">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
             )}
           </button>
+
+          {user && (
+            <button 
+              className="nav-item logout-nav-item"
+              onClick={logout}
+              title="Log Out"
+            >
+              <LogOut size={18} className="nav-icon text-danger" />
+              {!collapsed && <span className="nav-label text-danger">Log Out</span>}
+            </button>
+          )}
+
           {!collapsed && (
             <div className="sidebar-footer-text mt-2">
               <span className="text-tertiary text-xs">BudgetTracker v1.0</span>
@@ -139,3 +194,4 @@ export default function Sidebar({ activePage, onNavigate, collapsed = false, onT
     </>
   );
 }
+
