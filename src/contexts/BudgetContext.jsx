@@ -224,6 +224,11 @@ function budgetReducer(state, action) {
       };
     }
 
+    case 'RESET_STATE': {
+      // Fully reset in-memory state to initialState (used on user switch/logout)
+      return { ...initialState };
+    }
+
     case 'LOAD_SAMPLE_DATA': {
       const sampleExpenses = action.payload?.expenses || [];
       return {
@@ -292,6 +297,10 @@ export function BudgetProvider({ children }) {
     loadedUserIdRef.current = user.id;
     cloudLoadedRef.current = false; // reset for new user
 
+    // Reset in-memory state immediately so the new user never sees the previous user's data
+    dispatch({ type: 'RESET_STATE' });
+    setStoredData({ ...initialState, _version: DATA_VERSION });
+
     supabase
       .from('user_data')
       .select('data')
@@ -304,18 +313,20 @@ export function BudgetProvider({ children }) {
           dispatch({ type: 'IMPORT_DATA', payload: cleanData });
           setStoredData({ ...data.data, _version: DATA_VERSION });
         }
-        // No cloud data found (new user) — keep current localStorage data
+        // No cloud data found (new user) — keep initialState
         cloudLoadedRef.current = true;
       });
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reset loaded tracking on logout
+  // Reset loaded tracking AND in-memory state on logout
   useEffect(() => {
     if (!user) {
       loadedUserIdRef.current = null;
       cloudLoadedRef.current = false;
+      dispatch({ type: 'RESET_STATE' });
+      setStoredData({ ...initialState, _version: DATA_VERSION });
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save to localStorage on every state change
   useEffect(() => {
