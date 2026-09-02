@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import ProgressBar from '../shared/ProgressBar';
@@ -20,48 +20,54 @@ export default function CategorySummary() {
   const [sortConfig, setSortConfig] = useState({ key: 'actualSpent', direction: 'desc' });
   const [expandedCategory, setExpandedCategory] = useState(null);
 
-  const handleSort = (key) => {
-    let direction = 'desc';
-    if (sortConfig.key === key && sortConfig.direction === 'desc') {
-      direction = 'asc';
-    }
-    setSortConfig({ key, direction });
-  };
+  const handleSort = useCallback((key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  }, []);
 
   const sortedCategories = useMemo(() => {
-    const sortableCategories = [...categoryTotals];
-    sortableCategories.sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
-      
-      if (sortConfig.key === 'status') {
-        const statusOrder = { 'critical': 5, 'overBudget': 4, 'nearLimit': 3, 'monitor': 2, 'onTrack': 1 };
-        aValue = statusOrder[a.status] || 0;
-        bValue = statusOrder[b.status] || 0;
-      }
-      
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
+    const statusOrder = { critical: 5, overBudget: 4, nearLimit: 3, monitor: 2, onTrack: 1 };
+    return [...categoryTotals].sort((a, b) => {
+      let aValue = sortConfig.key === 'status' ? (statusOrder[a.status] || 0) : a[sortConfig.key];
+      let bValue = sortConfig.key === 'status' ? (statusOrder[b.status] || 0) : b[sortConfig.key];
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-    return sortableCategories;
   }, [categoryTotals, sortConfig]);
 
-  const onTrackCount = categoryTotals.filter(c => c.status === 'onTrack').length;
-  const nearLimitCount = categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor').length;
-  const overBudgetCount = categoryTotals.filter(c => c.status === 'critical' || c.status === 'overBudget').length;
+  // Memoize KPI counts so they don't recompute on every render
+  const { onTrackCount, nearLimitCount, overBudgetCount } = useMemo(() => ({
+    onTrackCount:   categoryTotals.filter(c => c.status === 'onTrack').length,
+    nearLimitCount: categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor').length,
+    overBudgetCount: categoryTotals.filter(c => c.status === 'critical' || c.status === 'overBudget').length,
+  }), [categoryTotals]);
 
-  const getPaceDetails = (categoryName) => {
-    const pace = calculateCategoryPace(categoryName, expenses, categories, state.currentMonth);
-    if (!pace) return { icon: '🚶', label: 'Normal Pace' };
-    if (pace.paceStatus === 'highPace') return { icon: '🏃', label: 'Fast Burn' };
-    if (pace.paceStatus === 'lowPace') return { icon: '🐢', label: 'Slow Burn' };
-    return { icon: '🚶', label: 'Normal Pace' };
-  };
+  // Compute pace for all categories in one pass — keyed by category name
+  const paceMap = useMemo(() => {
+    const map = {};
+    for (const cat of categoryTotals) {
+      const pace = calculateCategoryPace(cat.name, expenses, categories, state.currentMonth);
+      if (!pace) { map[cat.name] = { icon: '🚶', label: 'Normal Pace' }; continue; }
+      if (pace.paceStatus === 'highPace') { map[cat.name] = { icon: '🏃', label: 'Fast Burn' }; continue; }
+      if (pace.paceStatus === 'lowPace')  { map[cat.name] = { icon: '🐢', label: 'Slow Burn' }; continue; }
+      map[cat.name] = { icon: '🚶', label: 'Normal Pace' };
+    }
+    return map;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryTotals, expenses, categories, state.currentMonth]);
+
+  // Pre-group expenses by category so row expansion doesn't re-filter the full list
+  const expensesByCategory = useMemo(() => {
+    const map = {};
+    for (const exp of expenses) {
+      if (!map[exp.category]) map[exp.category] = [];
+      map[exp.category].push(exp);
+    }
+    return map;
+  }, [expenses]);
 
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return null;
@@ -142,8 +148,8 @@ export default function CategorySummary() {
             <tbody>
               {sortedCategories.map(category => {
                 const isExpanded = expandedCategory === category.name;
-                const pace = getPaceDetails(category.name);
-                const catExpenses = expenses.filter(e => e.category === category.name);
+                const pace = paceMap[category.name] || { icon: '🚶', label: 'Normal Pace' };
+                const catExpenses = expensesByCategory[category.name] || [];
                 const isWarning = category.status === 'critical' || category.status === 'overBudget';
                 
                 return (
@@ -193,7 +199,7 @@ export default function CategorySummary() {
                                 <div key={exp.id} className="flex-between py-1 border-bottom" style={{ borderBottom: '1px solid var(--border-color)', fontSize: 'var(--text-xs)' }}>
                                   <div>
                                     <div className="font-medium">{exp.description}</div>
-                                    <div className="text-tertiary">{exp.date.split('T')[0]} &bull; {exp.paymentMethod || 'Default'}</div>
+                                    <div className="text-tertiary">{(exp.date || '').split('T')[0]} &bull; {exp.paymentMethod || 'Default'}</div>
                                   </div>
                                   <div className="font-bold">{formatCurrency(exp.amount)}</div>
                                 </div>

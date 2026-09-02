@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Chart as ChartJS, ArcElement, Tooltip, Legend, BarElement, 
   CategoryScale, LinearScale, PointElement, LineElement, LineController, BarController 
 } from 'chart.js';
-import { Doughnut, Bar } from 'react-chartjs-2';
+import { Chart, Doughnut, Bar } from 'react-chartjs-2';
 import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { useBudget } from '../../contexts/BudgetContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import Header from '../layout/Header';
 import { CHART_COLORS } from '../../utils/constants';
+import { tooltipDefaults, CHART_THEME, tickFont } from '../../utils/chartTheme';
 import SpendingPieChart from '../dashboard/SpendingPieChart';
 import CategoryProgressList from '../dashboard/CategoryProgressList';
 import { 
@@ -29,43 +30,10 @@ export default function SpendingAnalysis() {
 
   const [activeTab, setActiveTab] = useState('proportions');
 
-  const tooltipOptions = {
-    backgroundColor: '#1a1a20',
-    titleColor: '#f8fafc',
-    bodyColor: '#94a3b8',
-    borderColor: '#2a2a32',
-    borderWidth: 1,
-    cornerRadius: 10,
-    padding: 12,
-    titleFont: { family: 'inherit', weight: '600' },
-    bodyFont: { family: 'inherit' }
-  };
+  // Shared tooltip/pie options — stable references so Chart.js doesn't re-init
+  const tooltipOptions = useMemo(() => tooltipDefaults(), []);
 
-  // Essential vs Discretionary Chart Data
-  const evdData = {
-    labels: ['Essential', 'Discretionary'],
-    datasets: [{
-      data: [essentialVsDiscretionary.essential.total, essentialVsDiscretionary.discretionary.total],
-      backgroundColor: ['#3b82f6', '#f59e0b'],
-      borderColor: 'var(--bg-secondary)',
-      borderWidth: 3,
-      hoverOffset: 6
-    }]
-  };
-  
-  // Fixed vs Variable Chart Data
-  const fvvData = {
-    labels: ['Fixed', 'Variable'],
-    datasets: [{
-      data: [fixedVsVariable.fixed.total, fixedVsVariable.variable.total],
-      backgroundColor: ['#14b8a6', '#10b981'],
-      borderColor: 'var(--bg-secondary)',
-      borderWidth: 3,
-      hoverOffset: 6
-    }]
-  };
-
-  const pieOptions = {
+  const pieOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     cutout: '72%',
@@ -73,23 +41,49 @@ export default function SpendingAnalysis() {
       legend: { 
         position: 'bottom', 
         labels: { 
-          color: '#94a3b8', 
+          color: CHART_THEME.tickColor,
           usePointStyle: true, 
           padding: 16,
-          font: { family: 'inherit', size: 12 } 
+          font: { family: CHART_THEME.fontFamily, size: 12 } 
         } 
       },
-      tooltip: tooltipOptions
+      tooltip: tooltipDefaults()
     }
-  };
+  }), []);
+
+  // Essential vs Discretionary Chart Data
+  const evdData = useMemo(() => ({
+    labels: ['Essential', 'Discretionary'],
+    datasets: [{
+      data: [essentialVsDiscretionary.essential.total, essentialVsDiscretionary.discretionary.total],
+      backgroundColor: ['#3b82f6', '#f59e0b'],
+      borderColor: CHART_THEME.tooltipBg,
+      borderWidth: 3,
+      hoverOffset: 6
+    }]
+  }), [essentialVsDiscretionary.essential.total, essentialVsDiscretionary.discretionary.total]);
+  
+  // Fixed vs Variable Chart Data
+  const fvvData = useMemo(() => ({
+    labels: ['Fixed', 'Variable'],
+    datasets: [{
+      data: [fixedVsVariable.fixed.total, fixedVsVariable.variable.total],
+      backgroundColor: ['#14b8a6', '#10b981'],
+      borderColor: CHART_THEME.tooltipBg,
+      borderWidth: 3,
+      hoverOffset: 6
+    }]
+  }), [fixedVsVariable.fixed.total, fixedVsVariable.variable.total]);
 
   // Top Spending Categories
-  const topCategories = [...categoryTotals]
-    .filter(c => c.actualSpent > 0 && c.priority !== 'Savings' && c.priority !== 'Investment')
-    .sort((a, b) => b.actualSpent - a.actualSpent)
-    .slice(0, 5);
+  const topCategories = useMemo(() => 
+    [...categoryTotals]
+      .filter(c => c.actualSpent > 0 && c.priority !== 'Savings' && c.priority !== 'Investment')
+      .sort((a, b) => b.actualSpent - a.actualSpent)
+      .slice(0, 5),
+  [categoryTotals]);
 
-  const topSpendingData = {
+  const topSpendingData = useMemo(() => ({
     labels: topCategories.map(c => c.name),
     datasets: [{
       label: 'Spent',
@@ -98,93 +92,104 @@ export default function SpendingAnalysis() {
       borderRadius: 6,
       barPercentage: 0.6
     }]
-  };
+  }), [topCategories]);
 
-  const topSpendingOptions = {
+  const topSpendingOptions = useMemo(() => ({
     indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: tooltipOptions
+      tooltip: tooltipDefaults()
     },
     scales: {
       x: { 
-        grid: { color: '#2a2a32' }, 
+        grid: { color: CHART_THEME.gridColor }, 
         ticks: { 
-          color: '#94a3b8',
-          font: { family: 'inherit' },
+          color: CHART_THEME.tickColor,
+          font: tickFont(11),
           callback: (v) => `₹${(v / 1000).toFixed(0)}K`
         } 
       },
-      y: { grid: { display: false }, ticks: { color: '#f8fafc', font: { family: 'inherit', weight: '600' } } }
+      y: { grid: { display: false }, ticks: { color: CHART_THEME.tickColorBold, font: tickFont(11) } }
     }
-  };
+  }), []);
 
-  // Daily Spending Chart
+  // Daily Spending Chart — uses <Chart> (mixed type) not <Bar>
   const avgDaily = overallMetrics.avgDailySpending;
-  const dailyData = {
+
+  const dailyData = useMemo(() => ({
     labels: dailySpending.map(d => d.date.split('-')[2]),
     datasets: [
       {
         type: 'line',
         label: 'Daily Average',
         data: dailySpending.map(() => avgDaily),
-        borderColor: 'rgba(239, 68, 68, 0.7)',
+        borderColor: 'rgba(239, 68, 68, 0.75)',
         borderDash: [4, 4],
         pointRadius: 0,
         fill: false,
-        borderWidth: 2
+        borderWidth: 2,
+        order: 1
       },
       {
         type: 'bar',
         label: 'Daily Spending',
         data: dailySpending.map(d => d.total),
-        backgroundColor: '#14b8a6',
-        borderRadius: 4
+        backgroundColor: 'rgba(20, 184, 166, 0.65)',
+        borderColor: 'rgba(20, 184, 166, 0.9)',
+        borderWidth: 1,
+        borderRadius: 4,
+        order: 2
       }
     ]
-  };
+  }), [dailySpending, avgDaily]);
 
-  const dailyOptions = {
+  const dailyOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top', labels: { color: '#94a3b8', usePointStyle: true, font: { family: 'inherit' } } },
-      tooltip: tooltipOptions
+      legend: { 
+        position: 'top', 
+        labels: { color: CHART_THEME.tickColor, usePointStyle: true, font: tickFont(11) } 
+      },
+      tooltip: tooltipDefaults()
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'inherit' } } },
+      x: { grid: { display: false }, ticks: { color: CHART_THEME.tickColor, font: tickFont(11) } },
       y: { 
-        grid: { color: '#2a2a32' }, 
-        ticks: { color: '#94a3b8', font: { family: 'inherit' }, callback: (v) => `₹${v.toLocaleString('en-IN')}` } 
+        grid: { color: CHART_THEME.gridColor }, 
+        beginAtZero: true,
+        ticks: { 
+          color: CHART_THEME.tickColor, 
+          font: tickFont(11), 
+          callback: (v) => `₹${v.toLocaleString('en-IN')}` 
+        } 
       }
     }
-  };
+  }), []);
   
   // Most Frequent Category calculation
-  const categoryFreq = expenses.reduce((acc, exp) => {
-    acc[exp.category] = (acc[exp.category] || 0) + 1;
-    return acc;
-  }, {});
-  let mostFreqCategory = '';
-  let mostFreqCount = 0;
-  for (const [cat, count] of Object.entries(categoryFreq)) {
-    if (count > mostFreqCount) {
-      mostFreqCategory = cat;
-      mostFreqCount = count;
+  const { mostFreqCategory, mostFreqCount } = useMemo(() => {
+    const freq = expenses.reduce((acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + 1;
+      return acc;
+    }, {});
+    let cat = '';
+    let count = 0;
+    for (const [c, n] of Object.entries(freq)) {
+      if (n > count) { cat = c; count = n; }
     }
-  }
+    return { mostFreqCategory: cat, mostFreqCount: count };
+  }, [expenses]);
   
   // Highest Variance calculation
-  let highestVariance = null;
-  if (categoryTotals.length > 0) {
-    highestVariance = [...categoryTotals].reduce((prev, curr) => {
-      const prevVar = Math.abs(prev.difference);
-      const currVar = Math.abs(curr.difference);
-      return currVar > prevVar ? curr : prev;
-    }, categoryTotals[0]);
-  }
+  const highestVariance = useMemo(() => {
+    if (categoryTotals.length === 0) return null;
+    return [...categoryTotals].reduce((prev, curr) =>
+      Math.abs(curr.difference) > Math.abs(prev.difference) ? curr : prev
+    , categoryTotals[0]);
+  }, [categoryTotals]);
 
   return (
     <div className="analysis-page animate-fadeIn">
@@ -386,10 +391,14 @@ export default function SpendingAnalysis() {
         <div className="card chart-card">
           <h4 className="card-title">
             <Calendar size={18} />
-            Daily Spending Velocity & Average Threshold
+            Daily Spending Velocity &amp; Average Threshold
           </h4>
           <div className="chart-container" style={{ height: 320 }}>
-            <Bar data={dailyData} options={dailyOptions} />
+            {dailySpending.length > 0 ? (
+              <Chart type="bar" data={dailyData} options={dailyOptions} />
+            ) : (
+              <div className="chart-empty">No spending data yet for this month</div>
+            )}
           </div>
         </div>
       )}

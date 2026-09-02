@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { useBudget } from '../../contexts/BudgetContext';
 import { formatCurrency, formatPercent, getMonthName } from '../../utils/formatters';
-import { generateRecommendations } from '../../utils/calculations';
+import { generateRecommendations, calculateCategoryTotals } from '../../utils/calculations';
 import Header from '../layout/Header';
 import ProgressBar from '../shared/ProgressBar';
 import StatusBadge from '../shared/StatusBadge';
@@ -16,28 +16,46 @@ export default function MonthlyReview() {
   const { expenses } = currentMonthData;
   const categories = currentMonthData.budget?.categories || [];
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
-  const rawRecommendations = generateRecommendations(expenses, categories, currentMonth);
+  // Memoize all derived data so the report doesn't recompute on every unrelated render
+  const rawRecommendations = useMemo(
+    () => generateRecommendations(expenses, categories, currentMonth),
+    [expenses, categories, currentMonth]
+  );
 
-  const topExpenses = [...expenses]
-    .sort((a, b) => (b.amount || 0) - (a.amount || 0))
-    .slice(0, 5);
+  const topExpenses = useMemo(
+    () => [...expenses].sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 5),
+    [expenses]
+  );
 
-  const underBudget = categoryTotals.filter(c => c.status === 'onTrack' && c.actualSpent > 0);
-  const nearLimit = categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor');
-  const overBudget = categoryTotals.filter(c => c.status === 'critical' || c.status === 'overBudget');
-
-  const bestPerforming = [...underBudget].sort((a, b) => b.difference - a.difference)[0];
-  const worstPerforming = [...overBudget].sort((a, b) => a.difference - b.difference)[0];
+  const { underBudget, nearLimit, overBudget, bestPerforming, worstPerforming } = useMemo(() => {
+    const under  = categoryTotals.filter(c => c.status === 'onTrack' && c.actualSpent > 0);
+    const near   = categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor');
+    const over   = categoryTotals.filter(c => c.status === 'critical'  || c.status === 'overBudget');
+    const best   = [...under].sort((a, b) => b.difference - a.difference)[0];
+    const worst  = [...over].sort((a, b) => a.difference - b.difference)[0];
+    return { underBudget: under, nearLimit: near, overBudget: over, bestPerforming: best, worstPerforming: worst };
+  }, [categoryTotals]);
 
   // Income and Savings Calculations
-  const totalIncome = currentMonthData.budget.totalIncome || 0;
-  const totalSaved = totalIncome > 0 ? Math.max(0, totalIncome - overallMetrics.totalSpent) : 0;
-  const savingsRate = totalIncome > 0 ? (totalSaved / totalIncome) * 100 : 0;
-  const savingsGoal = overallMetrics.savingsTarget || 0;
+  const { totalIncome, totalSaved, savingsRate, savingsGoal } = useMemo(() => {
+    const income = currentMonthData.budget.totalIncome || 0;
+    const savingsGoal = overallMetrics.savingsTarget || 0;
+
+    // Actual savings = what was genuinely saved in Savings/Investment categories
+    // (i.e. expenses recorded against those categories represent money set aside)
+    const savingsCategoryTotals = calculateCategoryTotals(expenses, categories)
+      .filter(c => c.priority === 'Savings' || c.priority === 'Investment');
+    const actualSavingsSpent = savingsCategoryTotals.reduce((sum, c) => sum + c.actualSpent, 0);
+
+    // Non-savings spending = total spent minus what went into savings categories
+    const nonSavingsSpent = overallMetrics.totalSpent - actualSavingsSpent;
+    const retained = income > 0 ? Math.max(0, income - nonSavingsSpent) : 0;
+    const rate = income > 0 ? (retained / income) * 100 : 0;
+
+    return { totalIncome: income, totalSaved: retained, savingsRate: rate, savingsGoal };
+  }, [currentMonthData.budget.totalIncome, overallMetrics.totalSpent, overallMetrics.savingsTarget, expenses, categories]);
   
   return (
     <div className="review-page animate-fadeIn">
@@ -127,8 +145,8 @@ export default function MonthlyReview() {
             </div>
             <div className="progress-bar progress-lg">
               <div 
-                className="progress-fill progress-fill-success" 
-                style={{ width: `${fixedVsVariable.variable.percent}%` }}
+                className="progress-fill progress-fill-info" 
+                style={{ width: `${Math.min(fixedVsVariable.fixed.percent, 100)}%` }}
               />
             </div>
             <div className="flex-between mt-1 text-xs text-tertiary">

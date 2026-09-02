@@ -148,7 +148,24 @@ export const calculateOverallMetrics = (expenses = [], categories = [], monthStr
   const totalTransactions = expenses.length;
   const avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0;
   
-  const daysElapsed = new Date().getDate(); // Simplified
+  // Month-aware daysElapsed: use real date for current month, full month for past months
+  let daysElapsed = 1;
+  if (monthStr) {
+    const [y, m] = monthStr.split('-').map(Number);
+    const now = new Date();
+    const totalDaysInMonth = new Date(y, m, 0).getDate();
+    if (now.getFullYear() === y && now.getMonth() + 1 === m) {
+      daysElapsed = now.getDate();
+    } else if (new Date(y, m - 1, 1) < now) {
+      // Past month — all days elapsed
+      daysElapsed = totalDaysInMonth;
+    } else {
+      // Future month — 0 days
+      daysElapsed = 0;
+    }
+  } else {
+    daysElapsed = new Date().getDate();
+  }
   const avgDailySpending = daysElapsed > 0 ? totalSpent / daysElapsed : 0;
 
   const categoryTotals = calculateCategoryTotals(expenses, categories).filter(c => c.priority !== 'Savings' && c.priority !== 'Investment');
@@ -192,31 +209,92 @@ export const calculateOverallMetrics = (expenses = [], categories = [], monthStr
 };
 
 export const calculateWeeklySpending = (expenses = [], monthStr) => {
-  const weeks = Array(5).fill(0).map((_, i) => ({ week: i + 1, total: 0, count: 0, expenses: [] }));
+  if (!monthStr) {
+    // Fallback: simple day÷7 bucketing when no month context
+    const weeks = Array(5).fill(0).map((_, i) => ({ week: i + 1, total: 0, count: 0, expenses: [], label: `Week ${i + 1}` }));
+    expenses.forEach(e => {
+      const d = new Date(e.date).getDate();
+      const weekIdx = Math.min(Math.floor((d - 1) / 7), 4);
+      weeks[weekIdx].total += Number(e.amount);
+      weeks[weekIdx].count += 1;
+      weeks[weekIdx].expenses.push(e);
+    });
+    return weeks.filter(w => w.total > 0 || w.count > 0);
+  }
+
+  const [y, m] = monthStr.split('-').map(Number);
+  // Build Mon-anchored week buckets that span the whole month
+  const monthStart = new Date(y, m - 1, 1);
+  const monthEnd   = new Date(y, m, 0); // last day of month
+
+  // Find the Monday on or before monthStart
+  const firstMonday = new Date(monthStart);
+  const dow = firstMonday.getDay(); // 0=Sun
+  const diffToMonday = (dow === 0 ? -6 : 1 - dow);
+  firstMonday.setDate(firstMonday.getDate() + diffToMonday);
+  firstMonday.setHours(0, 0, 0, 0);
+
+  const weeks = [];
+  let cursor = new Date(firstMonday);
+  let weekNum = 1;
+  while (cursor <= monthEnd) {
+    const weekStartLocal = new Date(cursor);
+    const weekEndLocal = new Date(cursor);
+    weekEndLocal.setDate(weekEndLocal.getDate() + 6);
+    weekEndLocal.setHours(23, 59, 59, 999);
+
+    const displayStart = new Date(Math.max(weekStartLocal, monthStart));
+    const displayEnd   = new Date(Math.min(weekEndLocal, monthEnd));
+
+    weeks.push({
+      week: weekNum,
+      label: `${format(displayStart, 'd MMM')}–${format(displayEnd, 'd MMM')}`,
+      total: 0,
+      count: 0,
+      expenses: [],
+      weekStart: weekStartLocal,
+      weekEnd: weekEndLocal,
+    });
+
+    cursor.setDate(cursor.getDate() + 7);
+    weekNum++;
+  }
+
   expenses.forEach(e => {
-    const d = new Date(e.date).getDate();
-    const weekIdx = Math.min(Math.floor((d - 1) / 7), 4);
-    weeks[weekIdx].total += Number(e.amount);
-    weeks[weekIdx].count += 1;
-    weeks[weekIdx].expenses.push(e);
+    if (!e.date) return;
+    try {
+      const expDate = typeof e.date === 'string' ? parseISO(e.date) : new Date(e.date);
+      const bucket = weeks.find(w => expDate >= w.weekStart && expDate <= w.weekEnd);
+      if (bucket) {
+        bucket.total += Number(e.amount) || 0;
+        bucket.count += 1;
+        bucket.expenses.push(e);
+      }
+    } catch { /* skip malformed dates */ }
   });
+
   return weeks.filter(w => w.total > 0 || w.count > 0);
 };
 
 export const calculateDailySpending = (expenses = [], monthStr) => {
   if (!monthStr) return [];
   const [y, m] = monthStr.split('-');
-  const days = new Date(y, m, 0).getDate();
-  const daily = Array(days).fill(0).map((_, i) => ({
+  const totalDays = new Date(y, m, 0).getDate();
+  const now = new Date();
+  const isCurrentMonth = now.getFullYear() === Number(y) && now.getMonth() + 1 === Number(m);
+  // For current month only show days up to today; for past months show the full month
+  const daysToShow = isCurrentMonth ? now.getDate() : totalDays;
+
+  const daily = Array(daysToShow).fill(0).map((_, i) => ({
     date: `${y}-${m}-${String(i + 1).padStart(2, '0')}`,
     total: 0,
     cumulative: 0
   }));
 
   expenses.forEach(e => {
-    const d = e.date.split('T')[0];
+    const d = (e.date || '').split('T')[0];
     const dayMatch = daily.find(day => day.date === d);
-    if (dayMatch) dayMatch.total += Number(e.amount);
+    if (dayMatch) dayMatch.total += Number(e.amount) || 0;
   });
 
   let cumulative = 0;
@@ -396,7 +474,10 @@ export const getCumulativeSpending = (expenses = [], monthStr, categories = []) 
     .filter(c => c.priority !== 'Savings' && c.priority !== 'Investment')
     .reduce((sum, c) => sum + c.planned, 0);
   const daily = calculateDailySpending(expenses, monthStr);
-  const totalDays = daily.length || 30;
+
+  if (!monthStr || daily.length === 0) return daily;
+  const [y, m] = monthStr.split('-');
+  const totalDays = new Date(y, m, 0).getDate(); // full month for expected line
   const dailyExpected = totalBudget / totalDays;
   
   return daily.map((d, i) => {
