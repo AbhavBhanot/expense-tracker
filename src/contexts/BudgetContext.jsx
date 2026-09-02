@@ -4,24 +4,35 @@ import { DEFAULT_CATEGORIES, DEFAULT_MONTHLY_INCOME } from '../utils/constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
-const initialState = {
-  currentMonth: '2026-08',
-  months: {
-    '2026-08': {
-      budget: {
-        totalIncome: DEFAULT_MONTHLY_INCOME,
-        categories: DEFAULT_CATEGORIES
-      },
-      expenses: []
-    }
-  },
-  settings: {
-    thresholds: { onTrack: 50, monitor: 75, nearLimit: 90, critical: 100 },
-    paymentMethods: ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'Wallet'],
-    currency: '₹',
-    theme: 'dark'
-  }
+// Always derives the current month key from today's real date — never hard-code it.
+const getTodayMonthKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
+
+const buildInitialState = () => {
+  const month = getTodayMonthKey();
+  return {
+    currentMonth: month,
+    months: {
+      [month]: {
+        budget: {
+          totalIncome: DEFAULT_MONTHLY_INCOME,
+          categories: DEFAULT_CATEGORIES
+        },
+        expenses: []
+      }
+    },
+    settings: {
+      thresholds: { onTrack: 50, monitor: 75, nearLimit: 90, critical: 100 },
+      paymentMethods: ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'Wallet'],
+      currency: '₹',
+      theme: 'dark'
+    }
+  };
+};
+
+const initialState = buildInitialState();
 
 const BudgetContext = createContext(null);
 
@@ -219,14 +230,41 @@ function budgetReducer(state, action) {
     }
 
     case 'IMPORT_DATA': {
+      const imported = action.payload;
+      const todayMonth = getTodayMonthKey();
+
+      // If the stored currentMonth is already today's month, restore as-is
+      if (imported.currentMonth === todayMonth) {
+        return { ...imported };
+      }
+
+      // Stored data is from a past (or future) month — migrate currentMonth to today.
+      // Carry the budget config forward from the most recent stored month so the
+      // user keeps their categories and income settings without needing to re-enter them.
+      const storedMonths = imported.months || {};
+      const sortedMonthKeys = Object.keys(storedMonths).sort();
+      const latestStoredKey = sortedMonthKeys[sortedMonthKeys.length - 1];
+      const latestBudget = latestStoredKey
+        ? JSON.parse(JSON.stringify(storedMonths[latestStoredKey].budget))
+        : { totalIncome: DEFAULT_MONTHLY_INCOME, categories: DEFAULT_CATEGORIES };
+
       return {
-        ...action.payload
+        ...imported,
+        currentMonth: todayMonth,
+        months: {
+          ...storedMonths,
+          // Seed today's month if it doesn't already exist
+          [todayMonth]: storedMonths[todayMonth] || {
+            budget: latestBudget,
+            expenses: []
+          }
+        }
       };
     }
 
     case 'RESET_STATE': {
-      // Fully reset in-memory state to initialState (used on user switch/logout)
-      return { ...initialState };
+      // Fully reset in-memory state to a fresh initialState with today's month
+      return buildInitialState();
     }
 
     case 'LOAD_SAMPLE_DATA': {
