@@ -238,25 +238,57 @@ function budgetReducer(state, action) {
         return { ...imported };
       }
 
-      // Stored data is from a past (or future) month — migrate currentMonth to today.
-      // Carry the budget config forward from the most recent stored month so the
-      // user keeps their categories and income settings without needing to re-enter them.
+      // Stored data is from a stale month — migrate to today's month.
+      // Carry the budget config forward from the most recent stored month so
+      // the user keeps their categories and income settings.
       const storedMonths = imported.months || {};
       const sortedMonthKeys = Object.keys(storedMonths).sort();
       const latestStoredKey = sortedMonthKeys[sortedMonthKeys.length - 1];
-      const latestBudget = latestStoredKey
-        ? JSON.parse(JSON.stringify(storedMonths[latestStoredKey].budget))
+      const latestStoredMonth = latestStoredKey ? storedMonths[latestStoredKey] : null;
+      const latestBudget = latestStoredMonth
+        ? JSON.parse(JSON.stringify(latestStoredMonth.budget))
         : { totalIncome: DEFAULT_MONTHLY_INCOME, categories: DEFAULT_CATEGORIES };
+
+      // Rescue expenses whose actual date belongs to todayMonth but were stored
+      // under the old stale month key (happens when the app ran past a month boundary).
+      const existingTodayExpenses = storedMonths[todayMonth]?.expenses || [];
+      const rescuedExpenses = latestStoredMonth
+        ? (latestStoredMonth.expenses || []).filter(exp => {
+            if (!exp?.date) return false;
+            try {
+              const expMonth = exp.date.slice(0, 7); // 'YYYY-MM'
+              return expMonth === todayMonth;
+            } catch {
+              return false;
+            }
+          })
+        : [];
+
+      const todayMonthExpenses = [
+        ...existingTodayExpenses,
+        // De-duplicate by id in case the month already existed with some of these
+        ...rescuedExpenses.filter(r => !existingTodayExpenses.some(e => e.id === r.id))
+      ];
+
+      // Rebuild the stale month without the rescued expenses so they don't appear twice
+      const updatedStoredMonths = { ...storedMonths };
+      if (latestStoredKey && latestStoredKey !== todayMonth && rescuedExpenses.length > 0) {
+        updatedStoredMonths[latestStoredKey] = {
+          ...storedMonths[latestStoredKey],
+          expenses: (storedMonths[latestStoredKey].expenses || []).filter(
+            exp => !rescuedExpenses.some(r => r.id === exp.id)
+          )
+        };
+      }
 
       return {
         ...imported,
         currentMonth: todayMonth,
         months: {
-          ...storedMonths,
-          // Seed today's month if it doesn't already exist
-          [todayMonth]: storedMonths[todayMonth] || {
-            budget: latestBudget,
-            expenses: []
+          ...updatedStoredMonths,
+          [todayMonth]: {
+            budget: storedMonths[todayMonth]?.budget || latestBudget,
+            expenses: todayMonthExpenses
           }
         }
       };
