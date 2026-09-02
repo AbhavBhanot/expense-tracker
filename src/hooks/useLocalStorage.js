@@ -1,8 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export function useLocalStorage(key, initialValue) {
-  // State to store our value
-  // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState(() => {
     if (typeof window === 'undefined') {
       return initialValue;
@@ -16,23 +14,25 @@ export function useLocalStorage(key, initialValue) {
     }
   });
 
-  // Return a wrapped version of useState's setter function that ...
-  // ... persists the new value to localStorage.
+  // Keep a ref in sync so setValue never has a stale closure over storedValue
+  // without needing it in the dependency array (which caused constant re-renders).
+  const storedValueRef = useRef(storedValue);
+  useEffect(() => {
+    storedValueRef.current = storedValue;
+  }, [storedValue]);
+
   const setValue = useCallback((value) => {
     try {
-      // Allow value to be a function so we have same API as useState
       const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      // Save state
+        value instanceof Function ? value(storedValueRef.current) : value;
       setStoredValue(valueToStore);
-      // Save to local storage
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
       console.error(`Error setting localStorage key "${key}":`, error);
     }
-  }, [key, storedValue]);
+  }, [key]); // stable — no longer depends on storedValue
 
   return [storedValue, setValue];
 }
