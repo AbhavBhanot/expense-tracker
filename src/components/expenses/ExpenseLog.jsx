@@ -73,9 +73,7 @@ export default function ExpenseLog() {
         return b.amount - a.amount;
       }
       if (sortBy === 'category-asc') {
-        const catA = categories.find(c => c.id === a.category)?.name || '';
-        const catB = categories.find(c => c.id === b.category)?.name || '';
-        return catA.localeCompare(catB);
+        return (a.category || '').localeCompare(b.category || '');
       }
       return 0;
     });
@@ -85,13 +83,19 @@ export default function ExpenseLog() {
 
   const totalFilteredAmount = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const getCategoryColor = (catId) => {
-    const idx = categories.findIndex(c => c.id === catId);
-    return CHART_COLORS[idx % CHART_COLORS.length] || '#ccc';
+  const getCategoryColor = (catName) => {
+    const idx = categories.findIndex(c => c.name === catName);
+    return idx >= 0 ? (CHART_COLORS[idx % CHART_COLORS.length] || '#ccc') : '#ccc';
   };
 
-  const getCategoryName = (catId) => {
-    return categories.find(c => c.id === catId)?.name || 'Unknown';
+  const getCategoryName = (catName) => {
+    // category is stored as a name; just return it (fall back gracefully for legacy id-stored expenses)
+    if (!catName) return 'Unknown';
+    const byName = categories.find(c => c.name === catName);
+    if (byName) return byName.name;
+    // legacy: stored as id
+    const byId = categories.find(c => c.id === catName);
+    return byId ? byId.name : catName;
   };
 
   // --- Add Form Logic ---
@@ -215,7 +219,7 @@ export default function ExpenseLog() {
                 >
                   <option value="">Select Category</option>
                   {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
                 {addErrors.category && <span className="form-error">{addErrors.category}</span>}
@@ -297,7 +301,7 @@ export default function ExpenseLog() {
             >
               <option value="">All Categories</option>
               {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
               ))}
             </select>
           </div>
@@ -453,7 +457,7 @@ export default function ExpenseLog() {
               >
                 <option value="">Select Category</option>
                 {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
               {editErrors.category && <span className="form-error">{editErrors.category}</span>}

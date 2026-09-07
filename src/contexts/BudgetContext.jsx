@@ -233,15 +233,19 @@ function budgetReducer(state, action) {
       const imported = action.payload;
       const todayMonth = getTodayMonthKey();
 
+      // Fix any expenses whose category was stored as an id instead of a name
+      const fixedMonths = migrateCategoryIdsToNames(imported.months || {});
+      const fixedImported = { ...imported, months: fixedMonths };
+
       // If the stored currentMonth is already today's month, restore as-is
-      if (imported.currentMonth === todayMonth) {
-        return { ...imported };
+      if (fixedImported.currentMonth === todayMonth) {
+        return { ...fixedImported };
       }
 
       // Stored data is from a stale month — migrate to today's month.
       // Carry the budget config forward from the most recent stored month so
       // the user keeps their categories and income settings.
-      const storedMonths = imported.months || {};
+      const storedMonths = fixedImported.months || {};
       const sortedMonthKeys = Object.keys(storedMonths).sort();
       const latestStoredKey = sortedMonthKeys[sortedMonthKeys.length - 1];
       const latestStoredMonth = latestStoredKey ? storedMonths[latestStoredKey] : null;
@@ -282,7 +286,7 @@ function budgetReducer(state, action) {
       }
 
       return {
-        ...imported,
+        ...fixedImported,
         currentMonth: todayMonth,
         months: {
           ...updatedStoredMonths,
@@ -334,6 +338,53 @@ function budgetReducer(state, action) {
 const DATA_VERSION = '3';
 const STORAGE_KEY = 'budget-tracker-data';
 
+/**
+ * One-time migration: expenses stored via the old ExpenseLog form had
+ * `category` set to a category *id* (e.g. "cat-1234-abc") instead of the
+ * category *name* (e.g. "Groceries"). All calculation helpers key on the
+ * name, so those expenses registered as ₹0 in every chart.
+ *
+ * This function walks every expense in every month and, when it finds a
+ * category value that matches a category id rather than a name, replaces it
+ * with the correct name. Safe to run on already-correct data.
+ */
+function migrateCategoryIdsToNames(months) {
+  if (!months || typeof months !== 'object') return months;
+
+  const migratedMonths = {};
+
+  for (const [monthKey, monthData] of Object.entries(months)) {
+    const categories = monthData?.budget?.categories || [];
+    const expenses = monthData?.expenses || [];
+
+    // Build fast lookup maps
+    const idToName = {};
+    const nameSet = new Set();
+    for (const cat of categories) {
+      if (cat.id) idToName[cat.id] = cat.name;
+      if (cat.name) nameSet.add(cat.name);
+    }
+
+    const migratedExpenses = expenses.map(exp => {
+      // Already a valid name — leave it alone
+      if (!exp.category || nameSet.has(exp.category)) return exp;
+      // Looks like an id and we have a mapping — fix it
+      if (idToName[exp.category]) {
+        return { ...exp, category: idToName[exp.category] };
+      }
+      // Unknown value — leave as-is rather than silently dropping it
+      return exp;
+    });
+
+    migratedMonths[monthKey] = {
+      ...monthData,
+      expenses: migratedExpenses
+    };
+  }
+
+  return migratedMonths;
+}
+
 // Run before React initializes — if the stored version is stale, wipe it
 // so useLocalStorage falls back to initialState (the correct defaults).
 if (typeof window !== 'undefined') {
@@ -353,7 +404,17 @@ if (typeof window !== 'undefined') {
 export function BudgetProvider({ children }) {
   const { user } = useAuth();
   const [storedData, setStoredData] = useLocalStorage(STORAGE_KEY, initialState);
-  const [state, dispatch] = useReducer(budgetReducer, storedData);
+
+  // Apply the category-id-to-name migration to whatever came out of localStorage
+  // before handing it to useReducer. This fixes stale data on the very first render
+  // without waiting for a Supabase round-trip.
+  const hydratedData = useMemo(() => {
+    if (!storedData?.months) return storedData;
+    const fixedMonths = migrateCategoryIdsToNames(storedData.months);
+    return { ...storedData, months: fixedMonths };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally run once at mount
+
+  const [state, dispatch] = useReducer(budgetReducer, hydratedData);
 
   const syncTimeoutRef = useRef(null);
   const loadedUserIdRef = useRef(null); // tracks which user's data is currently loaded
