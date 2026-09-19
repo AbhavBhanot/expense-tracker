@@ -60,8 +60,8 @@ export function useBudgetCalculations() {
   [expenses, currentMonth]);
 
   const dailySpending = useMemo(() => 
-    calculateDailySpending(expenses, currentMonth), 
-  [expenses, currentMonth, todayKey]);
+    calculateDailySpending(expenses, currentMonth, categories), 
+  [expenses, currentMonth, categories, todayKey]);
 
   const spendingPace = useMemo(() => 
     calculateSpendingPace(expenses, categories, currentMonth), 

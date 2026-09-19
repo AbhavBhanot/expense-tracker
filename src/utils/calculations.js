@@ -142,7 +142,18 @@ export const calculateOverallMetrics = (expenses = [], categories = [], monthStr
     }
   });
 
-  const totalSpent = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  // Split expenses into spending (Essential/Discretionary) vs savings/investment
+  const isSavingsOrInvestment = (e) => {
+    const cat = categories.find(c => c.name === e.category);
+    return cat && (cat.priority === 'Savings' || cat.priority === 'Investment');
+  };
+
+  const spendingExpenses = expenses.filter(e => !isSavingsOrInvestment(e));
+  const savingsExpenses  = expenses.filter(e => isSavingsOrInvestment(e));
+
+  const totalSpent = spendingExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const actualSavings = savingsExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
   const totalRemaining = totalBudget - totalSpent;
   const percentUsed = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : (totalSpent > 0 ? 100 : 0);
   const totalTransactions = expenses.length;
@@ -189,7 +200,7 @@ export const calculateOverallMetrics = (expenses = [], categories = [], monthStr
   let fixedSpending = 0;
   let variableSpending = 0;
 
-  expenses.forEach(e => {
+  spendingExpenses.forEach(e => {
     const cat = categories.find(c => c.name === e.category);
     if (cat) {
       if (cat.priority === 'Essential') essentialSpending += Number(e.amount);
@@ -199,12 +210,15 @@ export const calculateOverallMetrics = (expenses = [], categories = [], monthStr
     }
   });
 
+  const savingsRemaining = savingsTarget - actualSavings;
+  const savingsPercent = savingsTarget > 0 ? (actualSavings / savingsTarget) * 100 : (actualSavings > 0 ? 100 : 0);
+
   return {
     totalBudget, totalSpent, totalRemaining, percentUsed,
     totalTransactions, avgTransaction, avgDailySpending,
     highestCategory, lowestCategory, largestExpense,
     essentialSpending, discretionarySpending, fixedSpending, variableSpending,
-    savingsTarget, actualSavings: 0, savingsRemaining: savingsTarget, savingsPercent: 0
+    savingsTarget, actualSavings, savingsRemaining, savingsPercent
   };
 };
 
@@ -276,7 +290,7 @@ export const calculateWeeklySpending = (expenses = [], monthStr) => {
   return weeks.filter(w => w.total > 0 || w.count > 0);
 };
 
-export const calculateDailySpending = (expenses = [], monthStr) => {
+export const calculateDailySpending = (expenses = [], monthStr, categories = []) => {
   if (!monthStr) return [];
   const [y, m] = monthStr.split('-');
   const totalDays = new Date(y, m, 0).getDate();
@@ -291,7 +305,15 @@ export const calculateDailySpending = (expenses = [], monthStr) => {
     cumulative: 0
   }));
 
-  expenses.forEach(e => {
+  // Exclude Savings/Investment expenses so the chart only tracks actual spending
+  const spendingExpenses = categories.length > 0
+    ? expenses.filter(e => {
+        const cat = categories.find(c => c.name === e.category);
+        return !cat || (cat.priority !== 'Savings' && cat.priority !== 'Investment');
+      })
+    : expenses;
+
+  spendingExpenses.forEach(e => {
     const d = (e.date || '').split('T')[0];
     const dayMatch = daily.find(day => day.date === d);
     if (dayMatch) dayMatch.total += Number(e.amount) || 0;
@@ -307,8 +329,16 @@ export const calculateDailySpending = (expenses = [], monthStr) => {
 };
 
 export const calculateSpendingPace = (expenses = [], categories = [], monthStr) => {
-  const totalBudget = categories.filter(c => c.priority !== 'Savings').reduce((sum, c) => sum + c.planned, 0);
-  const totalSpent = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const totalBudget = categories
+    .filter(c => c.priority !== 'Savings' && c.priority !== 'Investment')
+    .reduce((sum, c) => sum + c.planned, 0);
+
+  const totalSpent = expenses
+    .filter(e => {
+      const cat = categories.find(c => c.name === e.category);
+      return !cat || (cat.priority !== 'Savings' && cat.priority !== 'Investment');
+    })
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   
   if (!monthStr) return { expectedPercent: 0, actualPercent: 0, paceStatus: 'onTrack', daysElapsed: 0, daysTotal: 30 };
   
@@ -473,7 +503,7 @@ export const getCumulativeSpending = (expenses = [], monthStr, categories = []) 
   const totalBudget = categories
     .filter(c => c.priority !== 'Savings' && c.priority !== 'Investment')
     .reduce((sum, c) => sum + c.planned, 0);
-  const daily = calculateDailySpending(expenses, monthStr);
+  const daily = calculateDailySpending(expenses, monthStr, categories);
 
   if (!monthStr || daily.length === 0) return daily;
   const [y, m] = monthStr.split('-');
