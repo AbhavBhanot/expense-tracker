@@ -1965,15 +1965,14 @@ textarea {
   gap: var(--space-2);
   flex: 0 0 auto;
   min-width: 0;
-  overflow: hidden;
   max-width: 100%;
 }
 
 .filter-field-date {
   margin: 0;
-  width: clamp(90px, 110px, 100%);
+  width: clamp(130px, 145px, 100%);
   flex: 0 0 auto;
-  min-width: 0;
+  min-width: 130px;
   box-sizing: border-box;
   overflow: hidden;
 }
