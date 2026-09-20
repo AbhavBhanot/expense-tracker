@@ -541,6 +541,34 @@ textarea {
 
 .sidebar-collapsed {
   width: var(--sidebar-collapsed-width);
+  padding: var(--space-4) var(--space-3);
+}
+
+/* Collapsed header: just reduce spacing, items already fit side-by-side at 72px */
+.sidebar-collapsed .sidebar-header {
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.sidebar-collapsed .sidebar-logo {
+  gap: 0;
+}
+
+/* Collapsed nav: center icons, remove label gap */
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: var(--space-2-5, 10px) 0;
+  gap: 0;
+  width: 100%;
+}
+
+/* Collapsed footer: center everything */
+.sidebar-collapsed .sidebar-footer {
+  padding-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .sidebar-collapse-btn {
