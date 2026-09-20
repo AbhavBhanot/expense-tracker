@@ -1998,12 +1998,10 @@ textarea {
 }
 
 .filter-field-date {
-  margin: 0;
   width: clamp(130px, 145px, 100%);
-  flex: 0 0 auto;
   min-width: 130px;
+  flex: 0 0 auto;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .filter-date-separator {
