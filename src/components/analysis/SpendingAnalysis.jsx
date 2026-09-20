@@ -13,7 +13,7 @@ import { tooltipDefaults, CHART_THEME, tickFont } from '../../utils/chartTheme';
 import SpendingPieChart from '../dashboard/SpendingPieChart';
 import CategoryProgressList from '../dashboard/CategoryProgressList';
 import { 
-  AlertCircle, TrendingUp, TrendingDown, DollarSign, 
+  AlertCircle, TrendingUp, TrendingDown, IndianRupee, 
   PieChart, BarChart3, Calendar, Activity 
 } from 'lucide-react';
 
@@ -235,7 +235,7 @@ export default function SpendingAnalysis() {
             </span>
           </div>
           <div className="kpi-icon kpi-icon-purple">
-            <DollarSign size={22} />
+            <IndianRupee size={22} />
           </div>
         </div>
 

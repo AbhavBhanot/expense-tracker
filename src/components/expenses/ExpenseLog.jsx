@@ -320,19 +320,23 @@ export default function ExpenseLog() {
           </div>
 
           <div className="filter-date-group">
-            <input 
-              type="date" 
-              className="form-input filter-field-date" 
-              value={filters.dateFrom}
-              onChange={e => setFilters({...filters, dateFrom: e.target.value})}
-            />
+            <div className="form-group filter-field-date">
+              <input 
+                type="date" 
+                className="form-input" 
+                value={filters.dateFrom}
+                onChange={e => setFilters({...filters, dateFrom: e.target.value})}
+              />
+            </div>
             <span className="filter-date-separator">to</span>
-            <input 
-              type="date" 
-              className="form-input filter-field-date" 
-              value={filters.dateTo}
-              onChange={e => setFilters({...filters, dateTo: e.target.value})}
-            />
+            <div className="form-group filter-field-date">
+              <input 
+                type="date" 
+                className="form-input" 
+                value={filters.dateTo}
+                onChange={e => setFilters({...filters, dateTo: e.target.value})}
+              />
+            </div>
           </div>
 
           <div className="form-group filter-field-sort">

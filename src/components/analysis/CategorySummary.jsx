@@ -39,14 +39,11 @@ export default function CategorySummary() {
   }, [categoryTotals, sortConfig]);
 
   // Memoize KPI counts so they don't recompute on every render
-  const { onTrackCount, nearLimitCount, overBudgetCount } = useMemo(() => {
-    const spending = categoryTotals.filter(c => c.priority !== 'Savings' && c.priority !== 'Investment');
-    return {
-      onTrackCount:    spending.filter(c => c.status === 'onTrack').length,
-      nearLimitCount:  spending.filter(c => c.status === 'nearLimit' || c.status === 'monitor').length,
-      overBudgetCount: spending.filter(c => c.status === 'critical' || c.status === 'overBudget').length,
-    };
-  }, [categoryTotals]);
+  const { onTrackCount, nearLimitCount, overBudgetCount } = useMemo(() => ({
+    onTrackCount:   categoryTotals.filter(c => c.status === 'onTrack').length,
+    nearLimitCount: categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor').length,
+    overBudgetCount: categoryTotals.filter(c => c.status === 'critical' || c.status === 'overBudget').length,
+  }), [categoryTotals]);
 
   // Compute pace for all categories in one pass — keyed by category name
   const paceMap = useMemo(() => {

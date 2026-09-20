@@ -30,10 +30,9 @@ export default function MonthlyReview() {
   );
 
   const { underBudget, nearLimit, overBudget, bestPerforming, worstPerforming } = useMemo(() => {
-    const isSpending = c => c.priority !== 'Savings' && c.priority !== 'Investment';
-    const under  = categoryTotals.filter(c => isSpending(c) && c.status === 'onTrack' && c.actualSpent > 0);
-    const near   = categoryTotals.filter(c => isSpending(c) && (c.status === 'nearLimit' || c.status === 'monitor'));
-    const over   = categoryTotals.filter(c => isSpending(c) && (c.status === 'critical'  || c.status === 'overBudget'));
+    const under  = categoryTotals.filter(c => c.status === 'onTrack' && c.actualSpent > 0);
+    const near   = categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor');
+    const over   = categoryTotals.filter(c => c.status === 'critical'  || c.status === 'overBudget');
     const best   = [...under].sort((a, b) => b.difference - a.difference)[0];
     const worst  = [...over].sort((a, b) => a.difference - b.difference)[0];
     return { underBudget: under, nearLimit: near, overBudget: over, bestPerforming: best, worstPerforming: worst };
@@ -44,15 +43,12 @@ export default function MonthlyReview() {
     const income = currentMonthData.budget.totalIncome || 0;
     const savingsGoal = overallMetrics.savingsTarget || 0;
 
-    // overallMetrics.totalSpent  = spending-only (Essential/Discretionary) — Savings/Investment excluded
     // overallMetrics.actualSavings = sum of Savings/Investment category expenses
-    // Actual Retained = income minus all outflows (spending + savings contributions)
-    const retained = income > 0
-      ? Math.max(0, income - overallMetrics.totalSpent - overallMetrics.actualSavings)
-      : 0;
-    const rate = income > 0 ? (retained / income) * 100 : 0;
+    // Compare actual savings contributions against the savings target (apples-to-apples)
+    const actualSavings = overallMetrics.actualSavings || 0;
+    const rate = savingsGoal > 0 ? (actualSavings / savingsGoal) * 100 : (actualSavings > 0 ? 100 : 0);
 
-    return { totalIncome: income, totalSaved: retained, savingsRate: rate, savingsGoal };
+    return { totalIncome: income, totalSaved: actualSavings, savingsRate: rate, savingsGoal };
   }, [currentMonthData.budget.totalIncome, overallMetrics.totalSpent, overallMetrics.actualSavings, overallMetrics.savingsTarget]);
   
   return (
@@ -166,7 +162,7 @@ export default function MonthlyReview() {
               <span className="text-lg font-bold">{formatCurrency(savingsGoal)}</span>
             </div>
             <div className="text-right">
-              <span className="text-tertiary text-xs block">Actual Retained</span>
+              <span className="text-tertiary text-xs block">Actual Saved</span>
               <span className={`text-lg font-bold ${totalSaved >= savingsGoal ? 'text-success' : 'text-warning'}`}>
                 {formatCurrency(totalSaved)}
               </span>
