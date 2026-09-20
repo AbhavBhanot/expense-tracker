@@ -792,15 +792,16 @@ textarea {
 
 .kpi-value {
   display: block;
-  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  font-size: clamp(1.1rem, 1.8vw, 1.35rem);
   font-weight: 700;
   color: var(--text-primary);
   line-height: var(--leading-tight);
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
   letter-spacing: -0.02em;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-subtitle {
@@ -2011,6 +2012,9 @@ textarea {
   font-weight: 500;
   user-select: none;
   padding: 0 2px;
+  align-self: center;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .filter-field-sort {
