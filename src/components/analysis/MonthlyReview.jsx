@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { useBudget } from '../../contexts/BudgetContext';
 import { formatCurrency, formatPercent, getMonthName } from '../../utils/formatters';
-import { generateRecommendations, calculateCategoryTotals } from '../../utils/calculations';
+import { generateRecommendations } from '../../utils/calculations';
 import Header from '../layout/Header';
 import ProgressBar from '../shared/ProgressBar';
 import StatusBadge from '../shared/StatusBadge';
@@ -43,19 +43,16 @@ export default function MonthlyReview() {
     const income = currentMonthData.budget.totalIncome || 0;
     const savingsGoal = overallMetrics.savingsTarget || 0;
 
-    // Actual savings = what was genuinely saved in Savings/Investment categories
-    // (i.e. expenses recorded against those categories represent money set aside)
-    const savingsCategoryTotals = calculateCategoryTotals(expenses, categories)
-      .filter(c => c.priority === 'Savings' || c.priority === 'Investment');
-    const actualSavingsSpent = savingsCategoryTotals.reduce((sum, c) => sum + c.actualSpent, 0);
-
-    // Non-savings spending = total spent minus what went into savings categories
-    const nonSavingsSpent = overallMetrics.totalSpent - actualSavingsSpent;
-    const retained = income > 0 ? Math.max(0, income - nonSavingsSpent) : 0;
+    // overallMetrics.totalSpent  = spending-only (Essential/Discretionary) — Savings/Investment excluded
+    // overallMetrics.actualSavings = sum of Savings/Investment category expenses
+    // Actual Retained = income minus all outflows (spending + savings contributions)
+    const retained = income > 0
+      ? Math.max(0, income - overallMetrics.totalSpent - overallMetrics.actualSavings)
+      : 0;
     const rate = income > 0 ? (retained / income) * 100 : 0;
 
     return { totalIncome: income, totalSaved: retained, savingsRate: rate, savingsGoal };
-  }, [currentMonthData.budget.totalIncome, overallMetrics.totalSpent, overallMetrics.savingsTarget, expenses, categories]);
+  }, [currentMonthData.budget.totalIncome, overallMetrics.totalSpent, overallMetrics.actualSavings, overallMetrics.savingsTarget]);
   
   return (
     <div className="review-page animate-fadeIn">
