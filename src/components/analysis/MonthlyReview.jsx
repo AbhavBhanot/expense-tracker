@@ -30,9 +30,10 @@ export default function MonthlyReview() {
   );
 
   const { underBudget, nearLimit, overBudget, bestPerforming, worstPerforming } = useMemo(() => {
-    const under  = categoryTotals.filter(c => c.status === 'onTrack' && c.actualSpent > 0);
-    const near   = categoryTotals.filter(c => c.status === 'nearLimit' || c.status === 'monitor');
-    const over   = categoryTotals.filter(c => c.status === 'critical'  || c.status === 'overBudget');
+    const isSpending = c => c.priority !== 'Savings' && c.priority !== 'Investment';
+    const under  = categoryTotals.filter(c => isSpending(c) && c.status === 'onTrack' && c.actualSpent > 0);
+    const near   = categoryTotals.filter(c => isSpending(c) && (c.status === 'nearLimit' || c.status === 'monitor'));
+    const over   = categoryTotals.filter(c => isSpending(c) && (c.status === 'critical'  || c.status === 'overBudget'));
     const best   = [...under].sort((a, b) => b.difference - a.difference)[0];
     const worst  = [...over].sort((a, b) => a.difference - b.difference)[0];
     return { underBudget: under, nearLimit: near, overBudget: over, bestPerforming: best, worstPerforming: worst };
